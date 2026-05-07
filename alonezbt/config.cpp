@@ -13,7 +13,7 @@ class CfgMods
 {
 	class alonezbt
 	{
-		dir = "AloneZ/BOTS";
+		dir = "alonezbt";
 		picture = "";
 		action = "";
 		hideName = 0;
@@ -33,17 +33,17 @@ class CfgMods
 			class gameScriptModule
 			{
 				value = "";
-				files[] = {"AloneZ/BOTS/Scripts/3_Game"};
+				files[] = {"alonezbt/Scripts/3_Game"};
 			};
 			class worldScriptModule
 			{
 				value = "";
-				files[] = {"AloneZ/BOTS/Scripts/4_World"};
+				files[] = {"alonezbt/Scripts/4_World"};
 			};
 			class missionScriptModule
 			{
 				value = "";
-				files[] = {"AloneZ/BOTS/Scripts/5_Mission"};
+				files[] = {"alonezbt/Scripts/5_Mission"};
 			};
 		};
 	};
