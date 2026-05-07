@@ -150,7 +150,7 @@ class ABBotCombat
 			return;
 		
 		// Forcar animacao de tiro no bot
-		DayZPlayerCommandMove moveCmd = botEntity.GetCommand_Move();
+		HumanCommandMove moveCmd = botEntity.GetCommand_Move();
 		if (moveCmd)
 		{
 			// Bot fica ereto ao atirar
@@ -218,7 +218,7 @@ class ABBotCombat
 		if (!botEntity)
 			return;
 		
-		DayZPlayerCommandMove moveCmd = botEntity.GetCommand_Move();
+		HumanCommandMove moveCmd = botEntity.GetCommand_Move();
 		if (moveCmd)
 		{
 			moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);

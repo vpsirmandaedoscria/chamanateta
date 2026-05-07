@@ -366,7 +366,7 @@ class ABBot
 		
 		m_BotEntity.SetPosition(newPos);
 		
-		DayZPlayerCommandMove moveCmd = m_BotEntity.GetCommand_Move();
+		HumanCommandMove moveCmd = m_BotEntity.GetCommand_Move();
 		if (moveCmd)
 		{
 			if (speedMultiplier < 0.5)
