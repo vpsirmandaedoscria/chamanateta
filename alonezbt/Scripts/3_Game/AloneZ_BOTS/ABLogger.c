@@ -2,9 +2,6 @@ class ABLogger
 {
 	static string LOG_FOLDER = "$profile:AloneZ\\BOTS\\Logs\\";
 	static string LOG_FILE_PREFIX = "ABBot_";
-	
-	static FileHandle s_LogFile;
-	static string s_CurrentLogDate;
 	static bool s_Initialized;
 	
 	static void Init()
@@ -43,30 +40,15 @@ class ABLogger
 	
 	static void Close()
 	{
-		if (s_LogFile != 0)
-		{
-			CloseFile(s_LogFile);
-			s_LogFile = 0;
-		}
 		s_Initialized = false;
 	}
 	
-	static void EnsureLogFile()
+	static string GetLogFilePath()
 	{
 		int year, month, day;
 		GetYearMonthDay(year, month, day);
-		
 		string dateStr = year.ToString() + "-" + FormatNum(month) + "-" + FormatNum(day);
-		
-		if (dateStr != s_CurrentLogDate || s_LogFile == 0)
-		{
-			if (s_LogFile != 0)
-				CloseFile(s_LogFile);
-			
-			s_CurrentLogDate = dateStr;
-			string filePath = LOG_FOLDER + LOG_FILE_PREFIX + dateStr + ".log";
-			s_LogFile = OpenFile(filePath, FileMode.APPEND);
-		}
+		return LOG_FOLDER + LOG_FILE_PREFIX + dateStr + ".log";
 	}
 	
 	static string FormatNum(int num)
@@ -90,16 +72,17 @@ class ABLogger
 		if (!s_Initialized)
 			Init();
 		
-		EnsureLogFile();
-		
 		string logLine = GetTimestamp() + " [" + level + "] [" + category + "] " + message;
 		
-		if (s_LogFile != 0)
+		string filePath = GetLogFilePath();
+		FileHandle file = OpenFile(filePath, FileMode.APPEND);
+		if (file != 0)
 		{
-			FPrintln(s_LogFile, logLine);
+			FPrintln(file, logLine);
+			CloseFile(file);
 		}
 		
-		PrintToRPT("[AloneZ_BOTS] " + logLine);
+		Print("[AloneZ_BOTS] " + logLine);
 	}
 	
 	static void LogSpawn(string botName, string difficulty, vector position, string groupName)
@@ -164,17 +147,17 @@ class ABLogger
 	
 	static void LogLoot(string botName, string itemClass, int quantity)
 	{
-		Log("INFO", "LOOT", "Bot '" + botName + "' dropou loot: " + itemClass + " x" + quantity.ToString());
+		Log("INFO", "LOOT", "Bot '" + botName + "' drop: " + itemClass + " x" + quantity.ToString());
 	}
 	
 	static void LogDespawn(string botName, string reason)
 	{
-		Log("INFO", "DESPAWN", "Bot '" + botName + "' removido | Motivo: " + reason);
+		Log("INFO", "DESPAWN", "Bot '" + botName + "' despawnado | Razao: " + reason);
 	}
 	
-	static void LogGroupCreated(string groupName, int botCount, string difficulty)
+	static void LogGroupCreated(string groupName, int size, string difficulty)
 	{
-		Log("INFO", "GROUP", "Grupo '" + groupName + "' criado com " + botCount.ToString() + " bots | Dificuldade: " + difficulty);
+		Log("INFO", "GROUP", "Grupo '" + groupName + "' criado | Tamanho: " + size.ToString() + " | Dificuldade: " + difficulty);
 	}
 	
 	static void LogRespawn(string groupName, vector position)
@@ -183,13 +166,13 @@ class ABLogger
 		Log("INFO", "RESPAWN", "Grupo '" + groupName + "' respawnando em " + posStr);
 	}
 	
-	static void LogError(string context, string message)
+	static void LogError(string category, string message)
 	{
-		Log("ERROR", context, message);
+		Log("ERROR", category, message);
 	}
 	
 	static void LogStateChange(string botName, string fromState, string toState)
 	{
-		Log("DEBUG", "STATE", "Bot '" + botName + "' mudou estado: " + fromState + " -> " + toState);
+		Log("DEBUG", "STATE", "Bot '" + botName + "' mudou de " + fromState + " para " + toState);
 	}
 };
