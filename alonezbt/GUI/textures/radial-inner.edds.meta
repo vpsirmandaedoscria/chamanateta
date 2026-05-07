@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{D655A7FEA5FF8421}DayZExpansion/AI/GUI/textures/radial-inner.edds"
+ Author "monolith"
+ ChangeDate 140751910
+ Configurations {
+  PNGResourceClass PC {
+   SourceFile "radial-inner.png"
+  }
+  PNGResourceClass XBOX_ONE : PC {
+  }
+  PNGResourceClass PS4 : PC {
+  }
+  PNGResourceClass LINUX : PC {
+  }
+ }
+}

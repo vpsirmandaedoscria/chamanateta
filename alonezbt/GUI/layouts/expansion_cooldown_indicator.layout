@@ -1,0 +1,79 @@
+FrameWidgetClass CooldownIndicator {
+ visible 1
+ clipchildren 0
+ position 0 0
+ size 288 32
+ hexactpos 1
+ vexactpos 1
+ hexactsize 1
+ vexactsize 1
+ scriptclass ""
+ {
+  PanelWidgetClass Panel {
+   visible 1
+   clipchildren 1
+   size 288 32
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   fixaspect fixwidth
+   priority 1
+   style blank
+   {
+    ImageWidgetClass Icon {
+     visible 1
+     color 1 0 0 0.549
+     position 36 0
+     size 32 32
+     valign center_ref
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     fixaspect fixwidth
+     priority 999
+     image0 "set:expansion_notification_iconset image:icon_bandit"
+     mode blend
+     "src alpha" 1
+     "clamp mode" clamp
+     "stretch mode" stretch_w_h
+     "flip u" 0
+     "flip v" 0
+     filter 1
+    }
+    PanelWidgetClass TextPanel {
+     visible 1
+     clipchildren 0
+     position 72 0
+     size 180 32
+     valign center_ref
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     fixaspect fixwidth
+     priority 999
+     {
+      TextWidgetClass CooldownText {
+       ignorepointer 1
+       color 1 0 0 0.8235
+       size 180 1
+       valign center_ref
+       hexactpos 1
+       vexactpos 1
+       hexactsize 1
+       vexactsize 0
+       scriptclass ""
+       text "MM:SS"
+       font "gui/fonts/sdf_metronbook72"
+       "exact text" 1
+       "exact text size" 22
+       "text valign" center
+      }
+     }
+    }
+   }
+  }
+ }
+}
