@@ -143,18 +143,25 @@ class ABBotBrain
 			if (dist > diff.StealthDistance)
 			{
 				m_Bot.SetState(ABBotState.STEALTH);
-				ABLogger.LogStealth(m_Bot.GetName(), target.GetIdentity() ? target.GetIdentity().GetName() : "Unknown");
+				string stealthTargetName = "Unknown";
+				if (target.GetIdentity())
+					stealthTargetName = target.GetIdentity().GetName();
+				ABLogger.LogStealth(m_Bot.GetName(), stealthTargetName);
 			}
 			else if (dist <= ABConfig.s_Settings.MeleeEngageDistance && Math.RandomFloat01() < diff.MeleeChance)
 			{
 				m_Bot.SetState(ABBotState.COMBAT_MELEE);
-				string targetName1 = target.GetIdentity() ? target.GetIdentity().GetName() : "Unknown";
+				string targetName1 = "Unknown";
+				if (target.GetIdentity())
+					targetName1 = target.GetIdentity().GetName();
 				ABLogger.LogCombatStart(m_Bot.GetName(), targetName1, "MELEE");
 			}
 			else
 			{
 				m_Bot.SetState(ABBotState.COMBAT_RANGED);
-				string targetName2 = target.GetIdentity() ? target.GetIdentity().GetName() : "Unknown";
+				string targetName2 = "Unknown";
+				if (target.GetIdentity())
+					targetName2 = target.GetIdentity().GetName();
 				ABLogger.LogCombatStart(m_Bot.GetName(), targetName2, "RANGED");
 			}
 		}
@@ -202,7 +209,9 @@ class ABBotBrain
 		if (dist <= meleeDist && diff && Math.RandomFloat01() < diff.MeleeChance)
 		{
 			m_Bot.SetState(ABBotState.COMBAT_MELEE);
-			string tn1 = target.GetIdentity() ? target.GetIdentity().GetName() : "Unknown";
+			string tn1 = "Unknown";
+			if (target.GetIdentity())
+				tn1 = target.GetIdentity().GetName();
 			ABLogger.LogCombatStart(m_Bot.GetName(), tn1, "MELEE");
 			m_StealthTimer = 0;
 			return;
@@ -211,7 +220,9 @@ class ABBotBrain
 		if (dist <= combatDist)
 		{
 			m_Bot.SetState(ABBotState.COMBAT_RANGED);
-			string tn2 = target.GetIdentity() ? target.GetIdentity().GetName() : "Unknown";
+			string tn2 = "Unknown";
+			if (target.GetIdentity())
+				tn2 = target.GetIdentity().GetName();
 			ABLogger.LogCombatStart(m_Bot.GetName(), tn2, "RANGED");
 			m_StealthTimer = 0;
 			return;
