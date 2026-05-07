@@ -24,37 +24,37 @@ class ABSpawnManager
 	static void InitBotTypes()
 	{
 		s_BotTypes = new array<string>();
-		s_BotTypes.Insert("AB_SurvivorM_Mirek");
-		s_BotTypes.Insert("AB_SurvivorM_Denis");
-		s_BotTypes.Insert("AB_SurvivorM_Boris");
-		s_BotTypes.Insert("AB_SurvivorM_Cyril");
-		s_BotTypes.Insert("AB_SurvivorM_Elias");
-		s_BotTypes.Insert("AB_SurvivorM_Francis");
-		s_BotTypes.Insert("AB_SurvivorM_Guo");
-		s_BotTypes.Insert("AB_SurvivorM_Hassan");
-		s_BotTypes.Insert("AB_SurvivorM_Indar");
-		s_BotTypes.Insert("AB_SurvivorM_Jose");
-		s_BotTypes.Insert("AB_SurvivorM_Kaito");
-		s_BotTypes.Insert("AB_SurvivorM_Lewis");
-		s_BotTypes.Insert("AB_SurvivorM_Manua");
-		s_BotTypes.Insert("AB_SurvivorM_Niki");
-		s_BotTypes.Insert("AB_SurvivorM_Oliver");
-		s_BotTypes.Insert("AB_SurvivorM_Peter");
-		s_BotTypes.Insert("AB_SurvivorM_Quinn");
-		s_BotTypes.Insert("AB_SurvivorM_Rolf");
-		s_BotTypes.Insert("AB_SurvivorM_Seth");
-		s_BotTypes.Insert("AB_SurvivorM_Taiki");
-		s_BotTypes.Insert("AB_SurvivorF_Linda");
-		s_BotTypes.Insert("AB_SurvivorF_Maria");
-		s_BotTypes.Insert("AB_SurvivorF_Frida");
-		s_BotTypes.Insert("AB_SurvivorF_Gabi");
-		s_BotTypes.Insert("AB_SurvivorF_Helga");
-		s_BotTypes.Insert("AB_SurvivorF_Irena");
-		s_BotTypes.Insert("AB_SurvivorF_Judy");
-		s_BotTypes.Insert("AB_SurvivorF_Keiko");
-		s_BotTypes.Insert("AB_SurvivorF_Eva");
-		s_BotTypes.Insert("AB_SurvivorF_Naomi");
-		s_BotTypes.Insert("AB_SurvivorF_Baty");
+		s_BotTypes.Insert("eAI_SurvivorM_Mirek");
+		s_BotTypes.Insert("eAI_SurvivorM_Denis");
+		s_BotTypes.Insert("eAI_SurvivorM_Boris");
+		s_BotTypes.Insert("eAI_SurvivorM_Cyril");
+		s_BotTypes.Insert("eAI_SurvivorM_Elias");
+		s_BotTypes.Insert("eAI_SurvivorM_Francis");
+		s_BotTypes.Insert("eAI_SurvivorM_Guo");
+		s_BotTypes.Insert("eAI_SurvivorM_Hassan");
+		s_BotTypes.Insert("eAI_SurvivorM_Indar");
+		s_BotTypes.Insert("eAI_SurvivorM_Jose");
+		s_BotTypes.Insert("eAI_SurvivorM_Kaito");
+		s_BotTypes.Insert("eAI_SurvivorM_Lewis");
+		s_BotTypes.Insert("eAI_SurvivorM_Manua");
+		s_BotTypes.Insert("eAI_SurvivorM_Niki");
+		s_BotTypes.Insert("eAI_SurvivorM_Oliver");
+		s_BotTypes.Insert("eAI_SurvivorM_Peter");
+		s_BotTypes.Insert("eAI_SurvivorM_Quinn");
+		s_BotTypes.Insert("eAI_SurvivorM_Rolf");
+		s_BotTypes.Insert("eAI_SurvivorM_Seth");
+		s_BotTypes.Insert("eAI_SurvivorM_Taiki");
+		s_BotTypes.Insert("eAI_SurvivorF_Linda");
+		s_BotTypes.Insert("eAI_SurvivorF_Maria");
+		s_BotTypes.Insert("eAI_SurvivorF_Frida");
+		s_BotTypes.Insert("eAI_SurvivorF_Gabi");
+		s_BotTypes.Insert("eAI_SurvivorF_Helga");
+		s_BotTypes.Insert("eAI_SurvivorF_Irena");
+		s_BotTypes.Insert("eAI_SurvivorF_Judy");
+		s_BotTypes.Insert("eAI_SurvivorF_Keiko");
+		s_BotTypes.Insert("eAI_SurvivorF_Eva");
+		s_BotTypes.Insert("eAI_SurvivorF_Naomi");
+		s_BotTypes.Insert("eAI_SurvivorF_Baty");
 	}
 	
 	static void SpawnAllConfigured()
@@ -160,7 +160,7 @@ class ABSpawnManager
 	static string GetRandomBotType()
 	{
 		if (!s_BotTypes || s_BotTypes.Count() == 0)
-			return "AB_SurvivorM_Mirek";
+			return "eAI_SurvivorM_Mirek";
 		
 		int idx = Math.RandomInt(0, s_BotTypes.Count());
 		return s_BotTypes[idx];

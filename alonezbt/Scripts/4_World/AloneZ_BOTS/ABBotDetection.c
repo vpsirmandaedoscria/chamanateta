@@ -101,7 +101,7 @@ class ABBotDetection
 			return false;
 		
 		string typeName = player.GetType();
-		if (typeName.IndexOf("AB_Survivor") == 0)
+		if (typeName.IndexOf("eAI_Survivor") == 0)
 			return true;
 		
 		return false;
