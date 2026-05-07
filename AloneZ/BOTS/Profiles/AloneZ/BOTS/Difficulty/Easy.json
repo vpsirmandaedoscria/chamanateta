@@ -1,0 +1,20 @@
+{
+    "Name": "Easy",
+    "AccuracyMin": 0.1,
+    "AccuracyMax": 0.3,
+    "DamageMultiplier": 0.5,
+    "DamageReceivedMultiplier": 1.5,
+    "ReactionTime": 3.0,
+    "DetectionRadius": 60.0,
+    "MovementSpeedMultiplier": 0.8,
+    "Brutality": 0.2,
+    "MeleeChance": 0.3,
+    "MeleeDamage": 15.0,
+    "FireRate": 0.5,
+    "AimSpread": 8.0,
+    "HealthMultiplier": 0.8,
+    "StealthDistance": 40.0,
+    "StealthSpeedMultiplier": 0.5,
+    "DodgeChance": 0.05,
+    "RespawnTime": 600.0
+}

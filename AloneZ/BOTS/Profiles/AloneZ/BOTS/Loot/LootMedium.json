@@ -1,0 +1,14 @@
+{
+    "Difficulty": "Medium",
+    "Items": [
+        { "ClassName": "BandageDressing", "QuantityMin": 1, "QuantityMax": 3, "DropChance": 0.7 },
+        { "ClassName": "Morphine", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.3 },
+        { "ClassName": "TacticalBaconCan", "QuantityMin": 1, "QuantityMax": 2, "DropChance": 0.5 },
+        { "ClassName": "Ammo_762x39", "QuantityMin": 10, "QuantityMax": 30, "DropChance": 0.5 },
+        { "ClassName": "Ammo_556x45", "QuantityMin": 10, "QuantityMax": 30, "DropChance": 0.5 },
+        { "ClassName": "Mag_AKM_30Rnd", "QuantityMin": 1, "QuantityMax": 2, "DropChance": 0.3 },
+        { "ClassName": "AKM", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.15 },
+        { "ClassName": "CombatKnife", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.4 },
+        { "ClassName": "PlateCarrierVest", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.1 }
+    ]
+}

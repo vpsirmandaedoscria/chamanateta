@@ -1,0 +1,12 @@
+{
+    "Difficulty": "Easy",
+    "Items": [
+        { "ClassName": "BandageDressing", "QuantityMin": 1, "QuantityMax": 2, "DropChance": 0.8 },
+        { "ClassName": "SodaCan_Cola", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.5 },
+        { "ClassName": "Apple", "QuantityMin": 1, "QuantityMax": 2, "DropChance": 0.6 },
+        { "ClassName": "Rag", "QuantityMin": 2, "QuantityMax": 4, "DropChance": 0.7 },
+        { "ClassName": "Ammo_9x19", "QuantityMin": 5, "QuantityMax": 15, "DropChance": 0.3 },
+        { "ClassName": "MakarovIJ70", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.1 },
+        { "ClassName": "KitchenKnife", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.4 }
+    ]
+}

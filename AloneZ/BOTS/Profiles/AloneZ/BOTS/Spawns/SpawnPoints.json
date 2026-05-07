@@ -1,0 +1,76 @@
+{
+    "SpawnPoints": [
+        {
+            "Name": "Cherno_Patrol_01",
+            "Enabled": true,
+            "Position": [6824.0, 0.0, 2480.0],
+            "Difficulty": "Medium",
+            "GroupSize": 3,
+            "GroupName": "Cherno_Squad_Alpha",
+            "RespawnEnabled": true,
+            "RespawnTime": 300.0,
+            "SpawnChance": 1.0,
+            "Loadout": "MilitaryLoadout",
+            "Waypoints": [
+                { "Position": [6824.0, 0.0, 2480.0], "WaitTime": 5.0 },
+                { "Position": [6850.0, 0.0, 2510.0], "WaitTime": 5.0 },
+                { "Position": [6880.0, 0.0, 2470.0], "WaitTime": 5.0 },
+                { "Position": [6860.0, 0.0, 2450.0], "WaitTime": 5.0 }
+            ]
+        },
+        {
+            "Name": "Elektro_Guard_01",
+            "Enabled": true,
+            "Position": [10384.0, 0.0, 2254.0],
+            "Difficulty": "Hard",
+            "GroupSize": 2,
+            "GroupName": "Elektro_Guard_Team",
+            "RespawnEnabled": true,
+            "RespawnTime": 600.0,
+            "SpawnChance": 0.8,
+            "Loadout": "HeavyMilitaryLoadout",
+            "Waypoints": [
+                { "Position": [10384.0, 0.0, 2254.0], "WaitTime": 10.0 },
+                { "Position": [10420.0, 0.0, 2290.0], "WaitTime": 10.0 },
+                { "Position": [10450.0, 0.0, 2260.0], "WaitTime": 10.0 }
+            ]
+        },
+        {
+            "Name": "Coast_Bandits_01",
+            "Enabled": true,
+            "Position": [8350.0, 0.0, 2500.0],
+            "Difficulty": "Easy",
+            "GroupSize": 4,
+            "GroupName": "Coast_Bandits",
+            "RespawnEnabled": true,
+            "RespawnTime": 900.0,
+            "SpawnChance": 0.6,
+            "Loadout": "CivilianLoadout",
+            "Waypoints": [
+                { "Position": [8350.0, 0.0, 2500.0], "WaitTime": 8.0 },
+                { "Position": [8400.0, 0.0, 2550.0], "WaitTime": 8.0 },
+                { "Position": [8370.0, 0.0, 2580.0], "WaitTime": 8.0 },
+                { "Position": [8320.0, 0.0, 2540.0], "WaitTime": 8.0 }
+            ]
+        },
+        {
+            "Name": "NWAF_Elite_01",
+            "Enabled": true,
+            "Position": [4520.0, 0.0, 10200.0],
+            "Difficulty": "Hard",
+            "GroupSize": 5,
+            "GroupName": "NWAF_Elite_Squad",
+            "RespawnEnabled": true,
+            "RespawnTime": 180.0,
+            "SpawnChance": 0.9,
+            "Loadout": "HeavyMilitaryLoadout",
+            "Waypoints": [
+                { "Position": [4520.0, 0.0, 10200.0], "WaitTime": 15.0 },
+                { "Position": [4580.0, 0.0, 10250.0], "WaitTime": 15.0 },
+                { "Position": [4620.0, 0.0, 10180.0], "WaitTime": 15.0 },
+                { "Position": [4560.0, 0.0, 10150.0], "WaitTime": 15.0 },
+                { "Position": [4500.0, 0.0, 10170.0], "WaitTime": 15.0 }
+            ]
+        }
+    ]
+}

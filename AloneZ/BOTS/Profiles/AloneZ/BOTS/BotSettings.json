@@ -1,0 +1,17 @@
+{
+    "Enabled": true,
+    "BotUpdateInterval": 1.0,
+    "PositionLogInterval": 30.0,
+    "DetectionRadius": 100.0,
+    "StealthApproachDistance": 50.0,
+    "CombatEngageDistance": 30.0,
+    "MeleeEngageDistance": 3.0,
+    "DespawnDistance": 500.0,
+    "RespawnCooldown": 300.0,
+    "MaxBotsTotal": 50,
+    "LogPositions": true,
+    "LogCombat": true,
+    "LogDetection": true,
+    "LogPatrol": true,
+    "LogSpawns": true
+}

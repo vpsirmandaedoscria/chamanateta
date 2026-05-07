@@ -1,0 +1,20 @@
+{
+    "Name": "Medium",
+    "AccuracyMin": 0.3,
+    "AccuracyMax": 0.6,
+    "DamageMultiplier": 1.0,
+    "DamageReceivedMultiplier": 1.0,
+    "ReactionTime": 1.5,
+    "DetectionRadius": 100.0,
+    "MovementSpeedMultiplier": 1.0,
+    "Brutality": 0.5,
+    "MeleeChance": 0.5,
+    "MeleeDamage": 25.0,
+    "FireRate": 1.0,
+    "AimSpread": 5.0,
+    "HealthMultiplier": 1.0,
+    "StealthDistance": 50.0,
+    "StealthSpeedMultiplier": 0.6,
+    "DodgeChance": 0.15,
+    "RespawnTime": 300.0
+}

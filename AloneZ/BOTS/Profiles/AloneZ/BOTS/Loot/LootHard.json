@@ -1,0 +1,18 @@
+{
+    "Difficulty": "Hard",
+    "Items": [
+        { "ClassName": "Morphine", "QuantityMin": 1, "QuantityMax": 2, "DropChance": 0.5 },
+        { "ClassName": "Epinephrine", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.3 },
+        { "ClassName": "BandageDressing", "QuantityMin": 2, "QuantityMax": 4, "DropChance": 0.8 },
+        { "ClassName": "Ammo_762x54", "QuantityMin": 10, "QuantityMax": 40, "DropChance": 0.6 },
+        { "ClassName": "Ammo_556x45", "QuantityMin": 20, "QuantityMax": 60, "DropChance": 0.6 },
+        { "ClassName": "Mag_M4A1_30Rnd", "QuantityMin": 1, "QuantityMax": 3, "DropChance": 0.4 },
+        { "ClassName": "M4A1", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.2 },
+        { "ClassName": "SVD", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.08 },
+        { "ClassName": "PlateCarrierVest", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.25 },
+        { "ClassName": "MilitaryBeret_Red", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.15 },
+        { "ClassName": "NVGHeadstrap", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.1 },
+        { "ClassName": "CombatKnife", "QuantityMin": 1, "QuantityMax": 1, "DropChance": 0.5 },
+        { "ClassName": "HandGrenade", "QuantityMin": 1, "QuantityMax": 2, "DropChance": 0.15 }
+    ]
+}

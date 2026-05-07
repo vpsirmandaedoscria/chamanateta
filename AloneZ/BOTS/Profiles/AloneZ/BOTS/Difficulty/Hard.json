@@ -1,0 +1,20 @@
+{
+    "Name": "Hard",
+    "AccuracyMin": 0.6,
+    "AccuracyMax": 0.9,
+    "DamageMultiplier": 1.5,
+    "DamageReceivedMultiplier": 0.7,
+    "ReactionTime": 0.5,
+    "DetectionRadius": 150.0,
+    "MovementSpeedMultiplier": 1.2,
+    "Brutality": 0.9,
+    "MeleeChance": 0.7,
+    "MeleeDamage": 40.0,
+    "FireRate": 2.0,
+    "AimSpread": 2.0,
+    "HealthMultiplier": 1.5,
+    "StealthDistance": 60.0,
+    "StealthSpeedMultiplier": 0.8,
+    "DodgeChance": 0.3,
+    "RespawnTime": 180.0
+}
