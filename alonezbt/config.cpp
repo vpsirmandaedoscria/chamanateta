@@ -502,7 +502,7 @@ class CfgAmmo
 	class Bullet_762x39Tracer;
 	class Bullet_762x39Tracer_eAI_Debug: Bullet_762x39Tracer
 	{
-		DamageApplied
+		class DamageApplied
 		{
 			type = "Projectile";
 			dispersion = 0;
