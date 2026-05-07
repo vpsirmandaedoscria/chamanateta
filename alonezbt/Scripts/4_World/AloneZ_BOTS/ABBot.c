@@ -336,14 +336,35 @@ class ABBot
 		if (!m_BotEntity || !m_IsAlive)
 			return;
 		
-		vector direction = targetPos - GetPosition();
+		vector currentPos = GetPosition();
+		vector direction = targetPos - currentPos;
 		direction[1] = 0;
+		float dist = direction.Length();
+		
+		if (dist < 0.3)
+			return;
+		
 		direction.Normalize();
 		
 		float yaw = direction.VectorToAngles()[0];
 		m_BotEntity.SetOrientation(Vector(yaw, 0, 0));
 		
-		vector moveVec = direction * speedMultiplier;
+		float baseSpeed = 1.8;
+		float speed = baseSpeed * speedMultiplier;
+		
+		float updateInterval = 1.0;
+		if (ABConfig.s_Settings)
+			updateInterval = ABConfig.s_Settings.BotUpdateInterval;
+		
+		float moveStep = speed * updateInterval;
+		
+		if (moveStep > dist)
+			moveStep = dist;
+		
+		vector newPos = currentPos + (direction * moveStep);
+		newPos[1] = GetGame().SurfaceY(newPos[0], newPos[2]);
+		
+		m_BotEntity.SetPosition(newPos);
 		
 		DayZPlayerCommandMove moveCmd = m_BotEntity.GetCommand_Move();
 		if (moveCmd)
@@ -351,6 +372,10 @@ class ABBot
 			if (speedMultiplier < 0.5)
 			{
 				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_CROUCH);
+			}
+			else if (speedMultiplier > 1.0)
+			{
+				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
 			}
 			else
 			{
