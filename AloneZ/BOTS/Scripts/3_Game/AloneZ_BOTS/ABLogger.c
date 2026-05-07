@@ -1,23 +1,44 @@
-// AloneZ BOTS - Sistema de Logging Completo
 class ABLogger
 {
-	static const string LOG_FOLDER = "$profile:AloneZ/BOTS/Logs/";
-	static const string LOG_FILE_PREFIX = "ABBot_";
+	static string LOG_FOLDER = "$profile:AloneZ\\BOTS\\Logs\\";
+	static string LOG_FILE_PREFIX = "ABBot_";
 	
-	private static FileHandle s_LogFile;
-	private static string s_CurrentLogDate;
-	private static bool s_Initialized;
+	static FileHandle s_LogFile;
+	static string s_CurrentLogDate;
+	static bool s_Initialized;
 	
 	static void Init()
 	{
 		if (s_Initialized)
 			return;
 		
-		if (!FileExist(LOG_FOLDER))
-			MakeDirectory(LOG_FOLDER);
+		CreateProfileDirs();
 		
 		s_Initialized = true;
 		Log("INFO", "SYSTEM", "AloneZ BOTS Logger inicializado");
+	}
+	
+	static void CreateProfileDirs()
+	{
+		string baseDir = "$profile:AloneZ";
+		string botsDir = "$profile:AloneZ\\BOTS";
+		string logsDir = "$profile:AloneZ\\BOTS\\Logs";
+		string diffDir = "$profile:AloneZ\\BOTS\\Difficulty";
+		string spawnDir = "$profile:AloneZ\\BOTS\\Spawns";
+		string lootDir = "$profile:AloneZ\\BOTS\\Loot";
+		
+		if (!FileExist(baseDir))
+			MakeDirectory(baseDir);
+		if (!FileExist(botsDir))
+			MakeDirectory(botsDir);
+		if (!FileExist(logsDir))
+			MakeDirectory(logsDir);
+		if (!FileExist(diffDir))
+			MakeDirectory(diffDir);
+		if (!FileExist(spawnDir))
+			MakeDirectory(spawnDir);
+		if (!FileExist(lootDir))
+			MakeDirectory(lootDir);
 	}
 	
 	static void Close()
@@ -30,9 +51,9 @@ class ABLogger
 		s_Initialized = false;
 	}
 	
-	private static void EnsureLogFile()
+	static void EnsureLogFile()
 	{
-		int year, month, day, hour, minute, second;
+		int year, month, day;
 		GetYearMonthDay(year, month, day);
 		
 		string dateStr = year.ToString() + "-" + FormatNum(month) + "-" + FormatNum(day);
@@ -48,21 +69,20 @@ class ABLogger
 		}
 	}
 	
-	private static string FormatNum(int num)
+	static string FormatNum(int num)
 	{
 		if (num < 10)
 			return "0" + num.ToString();
 		return num.ToString();
 	}
 	
-	private static string GetTimestamp()
+	static string GetTimestamp()
 	{
 		int year, month, day, hour, minute, second;
 		GetYearMonthDay(year, month, day);
 		GetHourMinuteSecond(hour, minute, second);
-		
-		return "[" + year.ToString() + "-" + FormatNum(month) + "-" + FormatNum(day) 
-			+ " " + FormatNum(hour) + ":" + FormatNum(minute) + ":" + FormatNum(second) + "]";
+		string ts = "[" + year.ToString() + "-" + FormatNum(month) + "-" + FormatNum(day) + " " + FormatNum(hour) + ":" + FormatNum(minute) + ":" + FormatNum(second) + "]";
+		return ts;
 	}
 	
 	static void Log(string level, string category, string message)

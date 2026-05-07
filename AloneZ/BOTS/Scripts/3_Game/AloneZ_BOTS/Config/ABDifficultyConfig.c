@@ -1,62 +1,29 @@
-// AloneZ BOTS - Difficulty Configuration
 class ABDifficultyConfig
 {
 	string Name;
-	
-	// Precisao de tiro (0.0 = nunca acerta, 1.0 = sempre acerta)
 	float AccuracyMin;
 	float AccuracyMax;
-	
-	// Dano que o bot causa
 	float DamageMultiplier;
-	
-	// Dano que o bot recebe
 	float DamageReceivedMultiplier;
-	
-	// Velocidade de reacao em segundos (quanto menor, mais rapido)
 	float ReactionTime;
-	
-	// Distancia maxima de deteccao de player
 	float DetectionRadius;
-	
-	// Velocidade de movimento (multiplicador)
 	float MovementSpeedMultiplier;
-	
-	// Brutalidade: chance de perseguir player ate a morte (0.0-1.0)
 	float Brutality;
-	
-	// Chance de usar faca quando perto (0.0-1.0)
 	float MeleeChance;
-	
-	// Dano da faca
 	float MeleeDamage;
-	
-	// Taxa de disparo (tiros por segundo)
 	float FireRate;
-	
-	// Dispersao do tiro (graus de desvio)
 	float AimSpread;
-	
-	// Vida do bot (multiplicador do HP base)
 	float HealthMultiplier;
-	
-	// Distancia para iniciar modo furtivo
 	float StealthDistance;
-	
-	// Velocidade no modo furtivo (multiplicador)
 	float StealthSpeedMultiplier;
-	
-	// Chance de desviar de tiros inimigos (0.0-1.0)
 	float DodgeChance;
-	
-	// Tempo de respawn em segundos (-1 = nao respawna)
 	float RespawnTime;
 	
-	void SetDefaults(string difficultyName)
+	void SetDefaults(string diffName)
 	{
-		Name = difficultyName;
+		Name = diffName;
 		
-		if (difficultyName == "Easy")
+		if (diffName == "Easy")
 		{
 			AccuracyMin = 0.1;
 			AccuracyMax = 0.3;
@@ -76,27 +43,7 @@ class ABDifficultyConfig
 			DodgeChance = 0.05;
 			RespawnTime = 600.0;
 		}
-		else if (difficultyName == "Medium")
-		{
-			AccuracyMin = 0.3;
-			AccuracyMax = 0.6;
-			DamageMultiplier = 1.0;
-			DamageReceivedMultiplier = 1.0;
-			ReactionTime = 1.5;
-			DetectionRadius = 100.0;
-			MovementSpeedMultiplier = 1.0;
-			Brutality = 0.5;
-			MeleeChance = 0.5;
-			MeleeDamage = 25.0;
-			FireRate = 1.0;
-			AimSpread = 5.0;
-			HealthMultiplier = 1.0;
-			StealthDistance = 50.0;
-			StealthSpeedMultiplier = 0.6;
-			DodgeChance = 0.15;
-			RespawnTime = 300.0;
-		}
-		else // Hard
+		else if (diffName == "Hard")
 		{
 			AccuracyMin = 0.6;
 			AccuracyMax = 0.9;
@@ -115,6 +62,26 @@ class ABDifficultyConfig
 			StealthSpeedMultiplier = 0.8;
 			DodgeChance = 0.3;
 			RespawnTime = 180.0;
+		}
+		else
+		{
+			AccuracyMin = 0.3;
+			AccuracyMax = 0.6;
+			DamageMultiplier = 1.0;
+			DamageReceivedMultiplier = 1.0;
+			ReactionTime = 1.5;
+			DetectionRadius = 100.0;
+			MovementSpeedMultiplier = 1.0;
+			Brutality = 0.5;
+			MeleeChance = 0.5;
+			MeleeDamage = 25.0;
+			FireRate = 1.0;
+			AimSpread = 5.0;
+			HealthMultiplier = 1.0;
+			StealthDistance = 50.0;
+			StealthSpeedMultiplier = 0.6;
+			DodgeChance = 0.15;
+			RespawnTime = 300.0;
 		}
 	}
 };

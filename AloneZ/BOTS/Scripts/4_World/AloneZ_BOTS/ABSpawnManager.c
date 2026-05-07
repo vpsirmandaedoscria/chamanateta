@@ -1,46 +1,10 @@
-// AloneZ BOTS - Spawn Manager
-// Gerencia spawn e respawn de todos os bots
-
 class ABSpawnManager
 {
 	static ref array<ref ABBotGroup> s_Groups;
 	static ref array<ref ABBot> s_AllBots;
 	static bool s_Initialized;
 	static int s_BotCounter;
-	
-	static ref array<string> s_BotTypes = {
-		"AB_SurvivorM_Mirek",
-		"AB_SurvivorM_Denis",
-		"AB_SurvivorM_Boris",
-		"AB_SurvivorM_Cyril",
-		"AB_SurvivorM_Elias",
-		"AB_SurvivorM_Francis",
-		"AB_SurvivorM_Guo",
-		"AB_SurvivorM_Hassan",
-		"AB_SurvivorM_Indar",
-		"AB_SurvivorM_Jose",
-		"AB_SurvivorM_Kaito",
-		"AB_SurvivorM_Lewis",
-		"AB_SurvivorM_Manua",
-		"AB_SurvivorM_Niki",
-		"AB_SurvivorM_Oliver",
-		"AB_SurvivorM_Peter",
-		"AB_SurvivorM_Quinn",
-		"AB_SurvivorM_Rolf",
-		"AB_SurvivorM_Seth",
-		"AB_SurvivorM_Taiki",
-		"AB_SurvivorF_Linda",
-		"AB_SurvivorF_Maria",
-		"AB_SurvivorF_Frida",
-		"AB_SurvivorF_Gabi",
-		"AB_SurvivorF_Helga",
-		"AB_SurvivorF_Irena",
-		"AB_SurvivorF_Judy",
-		"AB_SurvivorF_Keiko",
-		"AB_SurvivorF_Eva",
-		"AB_SurvivorF_Naomi",
-		"AB_SurvivorF_Baty"
-	};
+	static ref array<string> s_BotTypes;
 	
 	static void Init()
 	{
@@ -52,7 +16,45 @@ class ABSpawnManager
 		s_BotCounter = 0;
 		s_Initialized = true;
 		
+		InitBotTypes();
+		
 		ABLogger.Log("INFO", "SPAWN_MGR", "ABSpawnManager inicializado");
+	}
+	
+	static void InitBotTypes()
+	{
+		s_BotTypes = new array<string>();
+		s_BotTypes.Insert("AB_SurvivorM_Mirek");
+		s_BotTypes.Insert("AB_SurvivorM_Denis");
+		s_BotTypes.Insert("AB_SurvivorM_Boris");
+		s_BotTypes.Insert("AB_SurvivorM_Cyril");
+		s_BotTypes.Insert("AB_SurvivorM_Elias");
+		s_BotTypes.Insert("AB_SurvivorM_Francis");
+		s_BotTypes.Insert("AB_SurvivorM_Guo");
+		s_BotTypes.Insert("AB_SurvivorM_Hassan");
+		s_BotTypes.Insert("AB_SurvivorM_Indar");
+		s_BotTypes.Insert("AB_SurvivorM_Jose");
+		s_BotTypes.Insert("AB_SurvivorM_Kaito");
+		s_BotTypes.Insert("AB_SurvivorM_Lewis");
+		s_BotTypes.Insert("AB_SurvivorM_Manua");
+		s_BotTypes.Insert("AB_SurvivorM_Niki");
+		s_BotTypes.Insert("AB_SurvivorM_Oliver");
+		s_BotTypes.Insert("AB_SurvivorM_Peter");
+		s_BotTypes.Insert("AB_SurvivorM_Quinn");
+		s_BotTypes.Insert("AB_SurvivorM_Rolf");
+		s_BotTypes.Insert("AB_SurvivorM_Seth");
+		s_BotTypes.Insert("AB_SurvivorM_Taiki");
+		s_BotTypes.Insert("AB_SurvivorF_Linda");
+		s_BotTypes.Insert("AB_SurvivorF_Maria");
+		s_BotTypes.Insert("AB_SurvivorF_Frida");
+		s_BotTypes.Insert("AB_SurvivorF_Gabi");
+		s_BotTypes.Insert("AB_SurvivorF_Helga");
+		s_BotTypes.Insert("AB_SurvivorF_Irena");
+		s_BotTypes.Insert("AB_SurvivorF_Judy");
+		s_BotTypes.Insert("AB_SurvivorF_Keiko");
+		s_BotTypes.Insert("AB_SurvivorF_Eva");
+		s_BotTypes.Insert("AB_SurvivorF_Naomi");
+		s_BotTypes.Insert("AB_SurvivorF_Baty");
 	}
 	
 	static void SpawnAllConfigured()
@@ -65,22 +67,22 @@ class ABSpawnManager
 		
 		ABLogger.Log("INFO", "SPAWN_MGR", "Iniciando spawn de " + ABConfig.s_SpawnPoints.Count().ToString() + " pontos configurados...");
 		
-		foreach (ABSpawnPointConfig spawnConfig : ABConfig.s_SpawnPoints)
+		for (int s = 0; s < ABConfig.s_SpawnPoints.Count(); s++)
 		{
+			ABSpawnPointConfig spawnConfig = ABConfig.s_SpawnPoints[s];
+			
 			if (!spawnConfig.Enabled)
 			{
 				ABLogger.Log("INFO", "SPAWN_MGR", "Spawn '" + spawnConfig.Name + "' desabilitado, pulando...");
 				continue;
 			}
 			
-			// Verificar chance de spawn
 			if (Math.RandomFloat01() > spawnConfig.SpawnChance)
 			{
 				ABLogger.Log("INFO", "SPAWN_MGR", "Spawn '" + spawnConfig.Name + "' nao passou no teste de chance (" + spawnConfig.SpawnChance.ToString() + ")");
 				continue;
 			}
 			
-			// Verificar limite total de bots
 			if (ABConfig.s_Settings && s_AllBots.Count() >= ABConfig.s_Settings.MaxBotsTotal)
 			{
 				ABLogger.Log("WARN", "SPAWN_MGR", "Limite maximo de bots atingido (" + ABConfig.s_Settings.MaxBotsTotal.ToString() + ")");
@@ -99,23 +101,13 @@ class ABSpawnManager
 			return null;
 		
 		vector spawnPos = spawnConfig.GetPositionVector();
-		
-		// Ajustar Y para o terreno
 		spawnPos[1] = GetGame().SurfaceY(spawnPos[0], spawnPos[2]);
 		
-		ref ABBotGroup group = new ABBotGroup(
-			spawnConfig.GroupName,
-			spawnConfig.Difficulty,
-			spawnPos,
-			spawnConfig.GroupSize
-		);
-		
+		ref ABBotGroup group = new ABBotGroup(spawnConfig.GroupName, spawnConfig.Difficulty, spawnPos, spawnConfig.GroupSize);
 		group.SetSpawnConfig(spawnConfig);
 		
-		// Spawnar bots do grupo
 		for (int i = 0; i < spawnConfig.GroupSize; i++)
 		{
-			// Posicao com offset para nao spawnar todos no mesmo ponto
 			vector botPos = spawnPos + Vector(Math.RandomFloat(-3.0, 3.0), 0, Math.RandomFloat(-3.0, 3.0));
 			botPos[1] = GetGame().SurfaceY(botPos[0], botPos[2]);
 			
@@ -125,7 +117,6 @@ class ABSpawnManager
 			{
 				group.AddMember(bot);
 				
-				// Configurar waypoints de patrulha
 				if (spawnConfig.Waypoints && spawnConfig.Waypoints.Count() > 0)
 				{
 					bot.GetPatrol().SetWaypoints(spawnConfig.Waypoints);
@@ -135,7 +126,6 @@ class ABSpawnManager
 		}
 		
 		s_Groups.Insert(group);
-		
 		return group;
 	}
 	
@@ -143,13 +133,10 @@ class ABSpawnManager
 	{
 		s_BotCounter++;
 		string botName = "ABBot_" + s_BotCounter.ToString();
-		
-		// Selecionar tipo aleatorio de survivor
 		string botType = GetRandomBotType();
 		
 		ABLogger.Log("INFO", "SPAWN_MGR", "Spawning bot '" + botName + "' tipo '" + botType + "' em " + position.ToString());
 		
-		// Criar entidade
 		PlayerBase botEntity = PlayerBase.Cast(GetGame().CreateObjectEx(botType, position, ECE_PLACE_ON_SURFACE));
 		
 		if (!botEntity)
@@ -158,12 +145,8 @@ class ABSpawnManager
 			return null;
 		}
 		
-		// Criar wrapper do bot
 		ref ABBot bot = new ABBot(botEntity, botName, difficulty, position, groupName);
-		
-		// Equipar o bot
 		ABBotLoot.EquipBot(botEntity, difficulty, loadout);
-		
 		s_AllBots.Insert(bot);
 		
 		if (ABConfig.s_Settings && ABConfig.s_Settings.LogSpawns)
@@ -188,9 +171,9 @@ class ABSpawnManager
 		if (!s_Initialized)
 			return;
 		
-		// Atualizar todos os grupos
-		foreach (ABBotGroup group : s_Groups)
+		for (int i = 0; i < s_Groups.Count(); i++)
 		{
+			ABBotGroup group = s_Groups[i];
 			if (group)
 				group.Update(deltaTime);
 		}
@@ -210,10 +193,8 @@ class ABSpawnManager
 		
 		ABLogger.Log("INFO", "SPAWN_MGR", "Respawnando grupo '" + group.GetGroupName() + "'...");
 		
-		// Limpar bots mortos
 		group.CleanupDeadBots();
 		
-		// Respawnar bots
 		vector spawnPos = group.GetSpawnPosition();
 		
 		for (int i = group.GetAliveCount(); i < group.GetMaxSize(); i++)
@@ -241,8 +222,9 @@ class ABSpawnManager
 		
 		if (s_AllBots)
 		{
-			foreach (ABBot bot : s_AllBots)
+			for (int i = 0; i < s_AllBots.Count(); i++)
 			{
+				ABBot bot = s_AllBots[i];
 				if (bot)
 				{
 					PlayerBase entity = bot.GetEntity();
@@ -273,8 +255,9 @@ class ABSpawnManager
 		int count = 0;
 		if (s_AllBots)
 		{
-			foreach (ABBot bot : s_AllBots)
+			for (int i = 0; i < s_AllBots.Count(); i++)
 			{
+				ABBot bot = s_AllBots[i];
 				if (bot && bot.IsAlive())
 					count++;
 			}

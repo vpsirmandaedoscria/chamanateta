@@ -1,6 +1,3 @@
-// AloneZ BOTS - Player Detection System
-// Detecao de players num raio configuravel (padrao 100m)
-
 class ABBotDetection
 {
 	protected ABBot m_Bot;
@@ -36,17 +33,15 @@ class ABBotDetection
 		PlayerBase closestPlayer = null;
 		float closestDist = detectionRadius + 1.0;
 		
-		// Buscar todos os players no raio
 		ref array<Man> players = new array<Man>();
 		GetGame().GetPlayers(players);
 		
-		foreach (Man man : players)
+		for (int i = 0; i < players.Count(); i++)
 		{
-			PlayerBase player = PlayerBase.Cast(man);
+			PlayerBase player = PlayerBase.Cast(players[i]);
 			if (!player || !player.IsAlive())
 				continue;
 			
-			// Ignorar bots do mesmo sistema
 			if (IsABBot(player))
 				continue;
 			
@@ -54,7 +49,6 @@ class ABBotDetection
 			
 			if (dist <= detectionRadius && dist < closestDist)
 			{
-				// Line of sight check
 				if (HasLineOfSight(botPos, player.GetPosition()))
 				{
 					closestPlayer = player;
@@ -71,27 +65,26 @@ class ABBotDetection
 	
 	bool HasLineOfSight(vector from, vector to)
 	{
-		vector start = from + Vector(0, 1.6, 0); // Altura dos olhos
-		vector end = to + Vector(0, 1.0, 0);     // Centro de massa do player
+		vector start = from + Vector(0, 1.6, 0);
+		vector end = to + Vector(0, 1.0, 0);
 		
 		vector hitPos;
 		vector hitNormal;
 		int contactComponent;
 		
-		set<Object> results = new set<Object>();
+		ref set<Object> results = new set<Object>();
 		
 		if (DayZPhysics.RaycastRV(start, end, hitPos, hitNormal, contactComponent, results, null, m_Bot.GetEntity(), false, false, ObjIntersectGeom, 0.0, CollisionFlags.ALLOBJECTS))
 		{
-			// Se bateu em algo, verificar se eh o player
 			if (results.Count() > 0)
 			{
-				foreach (Object obj : results)
+				for (int i = 0; i < results.Count(); i++)
 				{
+					Object obj = results[i];
 					PlayerBase hitPlayer = PlayerBase.Cast(obj);
 					if (hitPlayer)
 						return true;
 					
-					// Se bateu em parede/terreno antes do player
 					if (obj.IsBuilding() || obj.IsRock() || obj.IsTree())
 						return false;
 				}
@@ -99,7 +92,6 @@ class ABBotDetection
 			return false;
 		}
 		
-		// Nenhuma obstrucao = tem visao
 		return true;
 	}
 	
@@ -108,7 +100,6 @@ class ABBotDetection
 		if (!player)
 			return false;
 		
-		// Verificar se o player eh um bot gerenciado pelo ABBotManager
 		string typeName = player.GetType();
 		if (typeName.IndexOf("AB_Survivor") == 0)
 			return true;
@@ -126,7 +117,6 @@ class ABBotDetection
 		return m_LastDetectedDistance;
 	}
 	
-	// Verifica se um player especifico ainda esta no raio
 	bool IsPlayerInRange(PlayerBase player, float customRadius = -1)
 	{
 		if (!player || !player.IsAlive() || !m_Bot || !m_Bot.IsAlive())

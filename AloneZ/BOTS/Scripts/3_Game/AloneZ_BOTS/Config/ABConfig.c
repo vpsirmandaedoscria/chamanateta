@@ -1,11 +1,10 @@
-// AloneZ BOTS - Main Configuration Loader
 class ABConfig
 {
-	static const string CONFIG_PATH = "$profile:AloneZ/BOTS/";
-	static const string SETTINGS_FILE = "BotSettings.json";
-	static const string DIFFICULTY_FOLDER = "Difficulty/";
-	static const string SPAWNS_FOLDER = "Spawns/";
-	static const string LOOT_FOLDER = "Loot/";
+	static string CONFIG_PATH = "$profile:AloneZ\\BOTS\\";
+	static string SETTINGS_FILE = "BotSettings.json";
+	static string DIFFICULTY_FOLDER = "Difficulty\\";
+	static string SPAWNS_FOLDER = "Spawns\\";
+	static string LOOT_FOLDER = "Loot\\";
 	
 	static ref ABBotSettings s_Settings;
 	static ref map<string, ref ABDifficultyConfig> s_Difficulties;
@@ -22,7 +21,6 @@ class ABConfig
 		ABLogger.Init();
 		ABLogger.Log("INFO", "CONFIG", "Carregando configuracoes AloneZ BOTS...");
 		
-		EnsureDirectories();
 		LoadSettings();
 		LoadDifficulties();
 		LoadSpawnPoints();
@@ -38,21 +36,7 @@ class ABConfig
 		Load();
 	}
 	
-	private static void EnsureDirectories()
-	{
-		if (!FileExist(CONFIG_PATH))
-			MakeDirectory(CONFIG_PATH);
-		if (!FileExist(CONFIG_PATH + DIFFICULTY_FOLDER))
-			MakeDirectory(CONFIG_PATH + DIFFICULTY_FOLDER);
-		if (!FileExist(CONFIG_PATH + SPAWNS_FOLDER))
-			MakeDirectory(CONFIG_PATH + SPAWNS_FOLDER);
-		if (!FileExist(CONFIG_PATH + LOOT_FOLDER))
-			MakeDirectory(CONFIG_PATH + LOOT_FOLDER);
-		if (!FileExist(CONFIG_PATH + "Logs/"))
-			MakeDirectory(CONFIG_PATH + "Logs/");
-	}
-	
-	private static void LoadSettings()
+	static void LoadSettings()
 	{
 		s_Settings = new ABBotSettings();
 		string path = CONFIG_PATH + SETTINGS_FILE;
@@ -70,14 +54,18 @@ class ABConfig
 		}
 	}
 	
-	private static void LoadDifficulties()
+	static void LoadDifficulties()
 	{
 		s_Difficulties = new map<string, ref ABDifficultyConfig>();
 		
-		ref array<string> diffFiles = {"Easy", "Medium", "Hard"};
+		ref array<string> diffFiles = new array<string>();
+		diffFiles.Insert("Easy");
+		diffFiles.Insert("Medium");
+		diffFiles.Insert("Hard");
 		
-		foreach (string diffName : diffFiles)
+		for (int i = 0; i < diffFiles.Count(); i++)
 		{
+			string diffName = diffFiles[i];
 			string path = CONFIG_PATH + DIFFICULTY_FOLDER + diffName + ".json";
 			ref ABDifficultyConfig diff = new ABDifficultyConfig();
 			
@@ -97,7 +85,7 @@ class ABConfig
 		}
 	}
 	
-	private static void LoadSpawnPoints()
+	static void LoadSpawnPoints()
 	{
 		s_SpawnPoints = new array<ref ABSpawnPointConfig>();
 		string path = CONFIG_PATH + SPAWNS_FOLDER + "SpawnPoints.json";
@@ -109,9 +97,9 @@ class ABConfig
 			
 			if (spawnList.SpawnPoints)
 			{
-				foreach (ref ABSpawnPointConfig sp : spawnList.SpawnPoints)
+				for (int i = 0; i < spawnList.SpawnPoints.Count(); i++)
 				{
-					s_SpawnPoints.Insert(sp);
+					s_SpawnPoints.Insert(spawnList.SpawnPoints[i]);
 				}
 			}
 			
@@ -123,21 +111,28 @@ class ABConfig
 			defaultList.SetDefaults();
 			JsonFileLoader<ABSpawnPointList>.JsonSaveFile(path, defaultList);
 			
-			foreach (ref ABSpawnPointConfig defSp : defaultList.SpawnPoints)
+			for (int j = 0; j < defaultList.SpawnPoints.Count(); j++)
 			{
-				s_SpawnPoints.Insert(defSp);
+				s_SpawnPoints.Insert(defaultList.SpawnPoints[j]);
 			}
 			
 			ABLogger.Log("INFO", "CONFIG", "SpawnPoints.json criado com exemplos padrao");
 		}
 	}
 	
-	private static void LoadLootTables()
+	static void LoadLootTables()
 	{
 		s_LootTables = new map<string, ref ABLootTable>();
 		
-		ref array<string> lootFiles = {"LootEasy", "LootMedium", "LootHard"};
-		ref array<string> diffNames = {"Easy", "Medium", "Hard"};
+		ref array<string> lootFiles = new array<string>();
+		lootFiles.Insert("LootEasy");
+		lootFiles.Insert("LootMedium");
+		lootFiles.Insert("LootHard");
+		
+		ref array<string> diffNames = new array<string>();
+		diffNames.Insert("Easy");
+		diffNames.Insert("Medium");
+		diffNames.Insert("Hard");
 		
 		for (int i = 0; i < lootFiles.Count(); i++)
 		{

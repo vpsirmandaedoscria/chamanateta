@@ -1,5 +1,3 @@
-// AloneZ BOTS - Loot Table Configuration
-
 class ABLootTable
 {
 	string Difficulty;
@@ -10,11 +8,12 @@ class ABLootTable
 		Items = new array<ref ABLootItem>();
 	}
 	
-	void SetDefaults(string diffName)
+	void SetDefaults(string diff)
 	{
-		Difficulty = diffName;
+		Difficulty = diff;
+		Items = new array<ref ABLootItem>();
 		
-		if (diffName == "Easy")
+		if (diff == "Easy")
 		{
 			AddItem("BandageDressing", 1, 2, 0.8);
 			AddItem("SodaCan_Cola", 1, 1, 0.5);
@@ -24,7 +23,22 @@ class ABLootTable
 			AddItem("MakarovIJ70", 1, 1, 0.1);
 			AddItem("KitchenKnife", 1, 1, 0.4);
 		}
-		else if (diffName == "Medium")
+		else if (diff == "Hard")
+		{
+			AddItem("Morphine", 1, 2, 0.5);
+			AddItem("Epinephrine", 1, 1, 0.3);
+			AddItem("BandageDressing", 2, 4, 0.8);
+			AddItem("Ammo_762x54", 10, 40, 0.6);
+			AddItem("Ammo_556x45", 20, 60, 0.6);
+			AddItem("Mag_M4A1_30Rnd", 1, 3, 0.4);
+			AddItem("M4A1", 1, 1, 0.2);
+			AddItem("SVD", 1, 1, 0.08);
+			AddItem("PlateCarrierVest", 1, 1, 0.25);
+			AddItem("NVGHeadstrap", 1, 1, 0.1);
+			AddItem("CombatKnife", 1, 1, 0.5);
+			AddItem("HandGrenade", 1, 2, 0.15);
+		}
+		else
 		{
 			AddItem("BandageDressing", 1, 3, 0.7);
 			AddItem("Morphine", 1, 1, 0.3);
@@ -36,31 +50,15 @@ class ABLootTable
 			AddItem("CombatKnife", 1, 1, 0.4);
 			AddItem("PlateCarrierVest", 1, 1, 0.1);
 		}
-		else // Hard
-		{
-			AddItem("Morphine", 1, 2, 0.5);
-			AddItem("Epinephrine", 1, 1, 0.3);
-			AddItem("BandageDressing", 2, 4, 0.8);
-			AddItem("Ammo_762x54", 10, 40, 0.6);
-			AddItem("Ammo_556x45", 20, 60, 0.6);
-			AddItem("Mag_M4A1_30Rnd", 1, 3, 0.4);
-			AddItem("M4A1", 1, 1, 0.2);
-			AddItem("SVD", 1, 1, 0.08);
-			AddItem("PlateCarrierVest", 1, 1, 0.25);
-			AddItem("MilitaryBeret_Red", 1, 1, 0.15);
-			AddItem("NVGHeadstrap", 1, 1, 0.1);
-			AddItem("CombatKnife", 1, 1, 0.5);
-			AddItem("HandGrenade", 1, 2, 0.15);
-		}
 	}
 	
-	void AddItem(string className, int quantityMin, int quantityMax, float chance)
+	void AddItem(string className, int qtyMin, int qtyMax, float dropChance)
 	{
 		ref ABLootItem item = new ABLootItem();
 		item.ClassName = className;
-		item.QuantityMin = quantityMin;
-		item.QuantityMax = quantityMax;
-		item.DropChance = chance;
+		item.QuantityMin = qtyMin;
+		item.QuantityMax = qtyMax;
+		item.DropChance = dropChance;
 		Items.Insert(item);
 	}
 };
@@ -70,5 +68,5 @@ class ABLootItem
 	string ClassName;
 	int QuantityMin;
 	int QuantityMax;
-	float DropChance;  // 0.0-1.0
+	float DropChance;
 };

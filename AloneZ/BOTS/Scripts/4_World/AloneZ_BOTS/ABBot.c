@@ -1,6 +1,3 @@
-// AloneZ BOTS - Main Bot Entity
-// Extends SurvivorBase to create AI-controlled bot
-
 enum ABBotState
 {
 	IDLE,
@@ -304,8 +301,9 @@ class ABBot
 		if (!lootTable || !lootTable.Items)
 			return;
 		
-		foreach (ABLootItem lootItem : lootTable.Items)
+		for (int i = 0; i < lootTable.Items.Count(); i++)
 		{
+			ABLootItem lootItem = lootTable.Items[i];
 			float roll = Math.RandomFloat01();
 			if (roll > lootItem.DropChance)
 				continue;

@@ -1,6 +1,3 @@
-// AloneZ BOTS - Bot Group Management
-// Gerenciamento de grupos de bots por spawn configuravel
-
 class ABBotGroup
 {
 	protected string m_GroupName;
@@ -47,7 +44,6 @@ class ABBotGroup
 	{
 		if (!bot)
 			return;
-		
 		m_Members.Insert(bot);
 		bot.SetGroup(this);
 	}
@@ -56,7 +52,6 @@ class ABBotGroup
 	{
 		if (!bot)
 			return;
-		
 		int idx = m_Members.Find(bot);
 		if (idx >= 0)
 			m_Members.Remove(idx);
@@ -64,24 +59,18 @@ class ABBotGroup
 	
 	void Update(float deltaTime)
 	{
-		// Atualizar todos os bots do grupo
 		for (int i = m_Members.Count() - 1; i >= 0; i--)
 		{
 			ABBot bot = m_Members[i];
-			if (bot)
+			if (bot && bot.IsAlive())
 			{
-				if (bot.IsAlive())
-				{
-					bot.Update(deltaTime);
-				}
+				bot.Update(deltaTime);
 			}
 		}
 		
-		// Verificar respawn
 		if (m_NeedsRespawn && m_RespawnEnabled)
 		{
 			m_RespawnTimer += deltaTime;
-			
 			if (m_RespawnTimer >= m_RespawnTime)
 			{
 				m_NeedsRespawn = false;
@@ -95,10 +84,8 @@ class ABBotGroup
 	void OnBotDied(ABBot bot)
 	{
 		m_DeadCount++;
-		
 		ABLogger.Log("INFO", "GROUP", "Bot morreu no grupo '" + m_GroupName + "' | Mortos: " + m_DeadCount.ToString() + "/" + m_Members.Count().ToString());
 		
-		// Verificar se todos morreram
 		if (GetAliveCount() == 0)
 		{
 			ABLogger.Log("INFO", "GROUP", "Todos os bots do grupo '" + m_GroupName + "' morreram! Respawn em " + m_RespawnTime.ToString() + "s");
@@ -120,16 +107,14 @@ class ABBotGroup
 		
 		ABLogger.Log("INFO", "GROUP", "Grupo '" + m_GroupName + "' alertado sobre player '" + targetName + "' por bot '" + alerter.GetName() + "'");
 		
-		// Alertar todos os membros do grupo
-		foreach (ABBot bot : m_Members)
+		for (int i = 0; i < m_Members.Count(); i++)
 		{
+			ABBot bot = m_Members[i];
 			if (!bot || !bot.IsAlive())
 				continue;
-			
 			if (bot == alerter)
 				continue;
 			
-			// Se o bot nao tem alvo, dar o alvo do grupo
 			if (!bot.GetTarget())
 			{
 				bot.SetTarget(target);
@@ -142,24 +127,17 @@ class ABBotGroup
 					stealthDist = diff.StealthDistance;
 				
 				if (dist > stealthDist)
-				{
 					bot.SetState(ABBotState.STEALTH);
-				}
 				else
-				{
 					bot.SetState(ABBotState.COMBAT_RANGED);
-				}
 			}
 		}
 	}
 	
 	protected void RequestRespawn()
 	{
-		// Solicitar respawn ao SpawnManager
 		ABSpawnManager.RequestGroupRespawn(this);
 	}
-	
-	// --- Getters ---
 	
 	string GetGroupName()
 	{
@@ -184,8 +162,9 @@ class ABBotGroup
 	int GetAliveCount()
 	{
 		int count = 0;
-		foreach (ABBot bot : m_Members)
+		for (int i = 0; i < m_Members.Count(); i++)
 		{
+			ABBot bot = m_Members[i];
 			if (bot && bot.IsAlive())
 				count++;
 		}
@@ -246,9 +225,7 @@ class ABBotGroup
 			{
 				PlayerBase entity = bot.GetEntity();
 				if (entity)
-				{
 					GetGame().ObjectDelete(entity);
-				}
 				m_Members.Remove(i);
 			}
 		}
