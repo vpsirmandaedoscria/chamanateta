@@ -100,9 +100,16 @@ class ABBotDetection
 		if (!player)
 			return false;
 		
-		string typeName = player.GetType();
-		if (typeName.IndexOf("eAI_Survivor") == 0)
-			return true;
+		array<ref ABBot> allBots = ABSpawnManager.GetAllBots();
+		if (!allBots)
+			return false;
+		
+		for (int i = 0; i < allBots.Count(); i++)
+		{
+			ABBot bot = allBots[i];
+			if (bot && bot.GetEntity() == player)
+				return true;
+		}
 		
 		return false;
 	}

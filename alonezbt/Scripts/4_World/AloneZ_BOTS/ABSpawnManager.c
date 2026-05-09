@@ -24,37 +24,37 @@ class ABSpawnManager
 	static void InitBotTypes()
 	{
 		s_BotTypes = new array<string>();
-		s_BotTypes.Insert("eAI_SurvivorM_Mirek");
-		s_BotTypes.Insert("eAI_SurvivorM_Denis");
-		s_BotTypes.Insert("eAI_SurvivorM_Boris");
-		s_BotTypes.Insert("eAI_SurvivorM_Cyril");
-		s_BotTypes.Insert("eAI_SurvivorM_Elias");
-		s_BotTypes.Insert("eAI_SurvivorM_Francis");
-		s_BotTypes.Insert("eAI_SurvivorM_Guo");
-		s_BotTypes.Insert("eAI_SurvivorM_Hassan");
-		s_BotTypes.Insert("eAI_SurvivorM_Indar");
-		s_BotTypes.Insert("eAI_SurvivorM_Jose");
-		s_BotTypes.Insert("eAI_SurvivorM_Kaito");
-		s_BotTypes.Insert("eAI_SurvivorM_Lewis");
-		s_BotTypes.Insert("eAI_SurvivorM_Manua");
-		s_BotTypes.Insert("eAI_SurvivorM_Niki");
-		s_BotTypes.Insert("eAI_SurvivorM_Oliver");
-		s_BotTypes.Insert("eAI_SurvivorM_Peter");
-		s_BotTypes.Insert("eAI_SurvivorM_Quinn");
-		s_BotTypes.Insert("eAI_SurvivorM_Rolf");
-		s_BotTypes.Insert("eAI_SurvivorM_Seth");
-		s_BotTypes.Insert("eAI_SurvivorM_Taiki");
-		s_BotTypes.Insert("eAI_SurvivorF_Linda");
-		s_BotTypes.Insert("eAI_SurvivorF_Maria");
-		s_BotTypes.Insert("eAI_SurvivorF_Frida");
-		s_BotTypes.Insert("eAI_SurvivorF_Gabi");
-		s_BotTypes.Insert("eAI_SurvivorF_Helga");
-		s_BotTypes.Insert("eAI_SurvivorF_Irena");
-		s_BotTypes.Insert("eAI_SurvivorF_Judy");
-		s_BotTypes.Insert("eAI_SurvivorF_Keiko");
-		s_BotTypes.Insert("eAI_SurvivorF_Eva");
-		s_BotTypes.Insert("eAI_SurvivorF_Naomi");
-		s_BotTypes.Insert("eAI_SurvivorF_Baty");
+		s_BotTypes.Insert("SurvivorM_Mirek");
+		s_BotTypes.Insert("SurvivorM_Denis");
+		s_BotTypes.Insert("SurvivorM_Boris");
+		s_BotTypes.Insert("SurvivorM_Cyril");
+		s_BotTypes.Insert("SurvivorM_Elias");
+		s_BotTypes.Insert("SurvivorM_Francis");
+		s_BotTypes.Insert("SurvivorM_Guo");
+		s_BotTypes.Insert("SurvivorM_Hassan");
+		s_BotTypes.Insert("SurvivorM_Indar");
+		s_BotTypes.Insert("SurvivorM_Jose");
+		s_BotTypes.Insert("SurvivorM_Kaito");
+		s_BotTypes.Insert("SurvivorM_Lewis");
+		s_BotTypes.Insert("SurvivorM_Manua");
+		s_BotTypes.Insert("SurvivorM_Niki");
+		s_BotTypes.Insert("SurvivorM_Oliver");
+		s_BotTypes.Insert("SurvivorM_Peter");
+		s_BotTypes.Insert("SurvivorM_Quinn");
+		s_BotTypes.Insert("SurvivorM_Rolf");
+		s_BotTypes.Insert("SurvivorM_Seth");
+		s_BotTypes.Insert("SurvivorM_Taiki");
+		s_BotTypes.Insert("SurvivorF_Linda");
+		s_BotTypes.Insert("SurvivorF_Maria");
+		s_BotTypes.Insert("SurvivorF_Frida");
+		s_BotTypes.Insert("SurvivorF_Gabi");
+		s_BotTypes.Insert("SurvivorF_Helga");
+		s_BotTypes.Insert("SurvivorF_Irena");
+		s_BotTypes.Insert("SurvivorF_Judy");
+		s_BotTypes.Insert("SurvivorF_Keiko");
+		s_BotTypes.Insert("SurvivorF_Eva");
+		s_BotTypes.Insert("SurvivorF_Naomi");
+		s_BotTypes.Insert("SurvivorF_Baty");
 	}
 	
 	static void SpawnAllConfigured()
@@ -137,11 +137,18 @@ class ABSpawnManager
 		
 		ABLogger.Log("INFO", "SPAWN_MGR", "Spawning bot '" + botName + "' tipo '" + botType + "' em " + position.ToString());
 		
-		PlayerBase botEntity = PlayerBase.Cast(GetGame().CreateObjectEx(botType, position, ECE_PLACE_ON_SURFACE));
+		Object obj = GetGame().CreateObjectEx(botType, position, ECE_PLACE_ON_SURFACE);
+		if (!obj)
+		{
+			ABLogger.LogError("SPAWN_MGR", "CreateObjectEx retornou null para tipo '" + botType + "'!");
+			return null;
+		}
 		
+		PlayerBase botEntity = PlayerBase.Cast(obj);
 		if (!botEntity)
 		{
-			ABLogger.LogError("SPAWN_MGR", "Falha ao criar entidade do bot '" + botName + "'!");
+			ABLogger.LogError("SPAWN_MGR", "Cast para PlayerBase falhou para '" + botName + "' tipo '" + botType + "'!");
+			GetGame().ObjectDelete(obj);
 			return null;
 		}
 		
@@ -160,7 +167,7 @@ class ABSpawnManager
 	static string GetRandomBotType()
 	{
 		if (!s_BotTypes || s_BotTypes.Count() == 0)
-			return "eAI_SurvivorM_Mirek";
+			return "SurvivorM_Mirek";
 		
 		int idx = Math.RandomInt(0, s_BotTypes.Count());
 		return s_BotTypes[idx];
@@ -241,6 +248,11 @@ class ABSpawnManager
 			s_Groups.Clear();
 		
 		s_Initialized = false;
+	}
+	
+	static array<ref ABBot> GetAllBots()
+	{
+		return s_AllBots;
 	}
 	
 	static int GetTotalBotCount()
