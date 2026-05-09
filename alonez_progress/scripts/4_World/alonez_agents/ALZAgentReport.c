@@ -1,16 +1,9 @@
-// File: scripts/4_World/alonez_agents/ALZAgentReport.c
-// DayZ (game). Builds a short report with agent counts and sends to player's chat/status.
-// Kuru handled as vanilla *agent* (eAgents.BRAIN). No modifier references.
-
 class ALZAgentReport
 {
 	static void Send(PlayerBase player)
 	{
 		if (!player) return;
 
-
-		// --- Доп.информация для теста: температуры тела и воздуха ---
-		// Логика как в Thermometer.GetTemperatureValue(PlayerBase)
 		float _bodyTemp;
 		if (player && player.IsSyncedModifierActive(eModifierSyncIDs.MODIFIER_SYNC_FEVER))
 		{
@@ -21,7 +14,7 @@ class ALZAgentReport
 			_bodyTemp = Math.RandomFloatInclusive(PlayerConstants.NORMAL_TEMPERATURE_L, PlayerConstants.NORMAL_TEMPERATURE_H);
 		}
 		_bodyTemp = Math.Round(_bodyTemp * 10) / 10.0;
-		// Температура воздуха из WorldData
+
 		float _airTemp = 0.0;
 		Mission _m = GetGame().GetMission();
 		if (_m)
@@ -35,10 +28,9 @@ class ALZAgentReport
 		float _airTempR  = Math.Round(_airTemp  * 10) / 10.0;
 		player.MessageStatus(string.Format("Temperatura corporal: %1°C", _bodyTemp));
 		player.MessageStatus(string.Format("Temperatura do ar: %1°C", _airTempR));
-		// --- конец блока температур ---
-		// Collect counts for common vanilla disease agents (including Kuru as BRAIN)
+
 		array<int> agentList = new array<int>();
-		agentList.Insert(eAgents.BRAIN);          // Kuru (vanilla brain disease)
+		agentList.Insert(eAgents.BRAIN);
 		agentList.Insert(eAgents.CHOLERA);
 		agentList.Insert(eAgents.SALMONELLA);
 		agentList.Insert(eAgents.INFLUENZA);
@@ -71,4 +63,3 @@ class ALZAgentReport
 			player.MessageStatus(lines[k]);
 	}
 }
-

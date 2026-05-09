@@ -82,7 +82,7 @@ class ALZAgentReportSrv
 		else { report = "Você está doente:\n" + report; }
 
 		Param1<string> p = new Param1<string>(report);
-		GetGame().RPCSingleParam(player, /*rpc id*/ 80001, p, true, player.GetIdentity());
+		GetGame().RPCSingleParam(player, 80001, p, true, player.GetIdentity());
 	}
 }
 
