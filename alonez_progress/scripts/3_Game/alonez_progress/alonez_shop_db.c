@@ -14,6 +14,24 @@ class AloneZShopDB
         string shopDir = s.ShopPath;
         if (shopDir == "") shopDir = "$profile:FlameHost/Addons/Shop/Players/PlayerDatabase";
 
+        if (!FileExist(shopDir))
+        {
+            string parts = shopDir;
+            TStringArray segs = new TStringArray;
+            parts.Replace("\\", "/");
+            parts.Split("/", segs);
+            string built = "";
+            for (int si = 0; si < segs.Count(); si++)
+            {
+                if (si == 0)
+                    built = segs.Get(si);
+                else
+                    built = built + "/" + segs.Get(si);
+                if (!FileExist(built))
+                    MakeDirectory(built);
+            }
+        }
+
         string path = shopDir + "/" + steamId + ".json";
         AloneZShopPlayerData data;
 
