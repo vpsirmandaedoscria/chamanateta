@@ -100,7 +100,7 @@ class AloneZStagesConfig
         string path = DIR + "/admin.json";
         if (!FileExist(path))
         {
-            WriteFile(path, "{\n    \"Admins\": [\n        \"76561198251007370\"\n    ]\n}");
+            WriteFile(path, "{\n    \"Admins\": [\n        \"7656119825xxxxxx\"\n    ]\n}");
         }
         JsonFileLoader<AloneZAdminConfig>.JsonLoadFile(path, s_Admin);
         if (!s_Admin) { s_Admin = new AloneZAdminConfig(); s_Admin.Admins = new array<string>(); }
