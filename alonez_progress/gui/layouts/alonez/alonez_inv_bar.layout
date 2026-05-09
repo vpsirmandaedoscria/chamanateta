@@ -1,0 +1,45 @@
+
+FrameWidgetClass AloneZStatRoot {
+ ignorepointer 1
+ position 0 0
+ size 1 36
+ valign center_ref
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 1
+ {
+  PanelWidgetClass AloneZStatPanel {
+   visible 1
+   ignorepointer 0
+   color 0 0 0 0.4235
+   size 288 36
+   valign center_ref
+   hexactpos 0
+   vexactpos 0
+   hexactsize 1
+   vexactsize 1
+   {
+    TextWidgetClass AloneZLabel {
+     position 4 0
+     size 280 12
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     text "LABEL"
+    }
+    ProgressBarWidgetClass AloneZBar {
+     position 4 18
+     size 280 9
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     style "progress"
+     "stretch mode" stretch_w
+    }
+   }
+  }
+ }
+}
