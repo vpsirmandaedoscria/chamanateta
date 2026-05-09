@@ -122,6 +122,16 @@ modded class PlayerBase
             AloneZUIState.MaxStageDist  = mx.param4;
             AloneZUIState.MaxStageDeath = mx.param5;
         }
+        else if (rpc_type == ALONEZ_RPC_NOTIFY)
+        {
+            Param3<string, string, int> pn;
+            if (!ctx.Read(pn) || !pn) return;
+            string nTitle = pn.param1;
+            string nMsg = pn.param2;
+            int nSec = pn.param3;
+            if (nSec <= 0) nSec = 5;
+            NotificationSystem.AddNotificationExtended(nSec, nTitle, nMsg, "set:dayz_gui image:icon_unlock");
+        }
         else if (rpc_type == 80001)
         {
             Param1<string> prpt;

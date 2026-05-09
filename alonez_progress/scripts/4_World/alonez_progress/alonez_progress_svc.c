@@ -105,6 +105,13 @@ class AloneZProgressSrv
         GetGame().RPCSingleParam(pb, ERPCs.RPC_USER_ACTION_MESSAGE, new Param1<string>(msg), true, pb.GetIdentity());
     }
 
+    static void SendNotify(PlayerBase pb, string title, string msg, int seconds = 5)
+    {
+        if (!pb || !pb.GetIdentity()) return;
+        Param3<string, string, int> p = new Param3<string, string, int>(title, msg, seconds);
+        GetGame().RPCSingleParam(pb, ALONEZ_RPC_NOTIFY, p, true, pb.GetIdentity());
+    }
+
     static void SendLevelUpMessage(PlayerBase pb, string category, int newLevel)
     {
         AloneZSettings s = AloneZStagesConfig.GetSettings();
@@ -352,7 +359,7 @@ class AloneZProgressSrv
         if (lower == "/alonez reload all")
         {
             AloneZStagesConfig.Reload("all");
-            SendMsg(pb, "[AloneZ] Todas as configs recarregadas!");
+            SendNotify(pb, "AloneZ Progress", "Todas as configs recarregadas com sucesso!", 5);
             return;
         }
 
@@ -361,14 +368,21 @@ class AloneZProgressSrv
         validNames.Insert("distance"); validNames.Insert("deaths");
         validNames.Insert("settings"); validNames.Insert("specific"); validNames.Insert("admin");
 
+        bool found = false;
         for (int i = 0; i < validNames.Count(); i++)
         {
             if (lower == "/alonez reload " + validNames.Get(i))
             {
                 AloneZStagesConfig.Reload(validNames.Get(i));
-                SendMsg(pb, "[AloneZ] Config '" + validNames.Get(i) + "' recarregada!");
-                return;
+                SendNotify(pb, "AloneZ Progress", "Config '" + validNames.Get(i) + "' recarregada com sucesso!", 5);
+                found = true;
+                break;
             }
+        }
+
+        if (!found && lower.IndexOf("/alonez") == 0)
+        {
+            SendNotify(pb, "AloneZ Progress", "Comando nao reconhecido. Use: /alonez reload all", 5);
         }
     }
 }
