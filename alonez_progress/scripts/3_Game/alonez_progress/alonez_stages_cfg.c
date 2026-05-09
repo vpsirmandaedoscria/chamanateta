@@ -1,14 +1,7 @@
-class AloneZStageReward
-{
-    string Item;
-    int Count;
-    int Quantity;
-}
-
 class AloneZStage
 {
     int Units;
-    ref array<AloneZStageReward> Rewards;
+    int CoinsReward;
 }
 
 class AloneZCategoryConfig
@@ -19,7 +12,7 @@ class AloneZCategoryConfig
 class AloneZTimeConfig
 {
     ref array<AloneZStage> Stages;
-    ref array<AloneZStageReward> HourlyRewards;
+    int HourlyCoinsReward;
 }
 
 class AloneZSettings
@@ -28,13 +21,14 @@ class AloneZSettings
     string RewardMessage;
     string HourlyMessage;
     string LevelMaxMessage;
+    string ShopPath;
 }
 
 class AloneZSpecificObjective
 {
     string Name;
     int Units;
-    ref array<AloneZStageReward> Rewards;
+    int CoinsReward;
 }
 
 class AloneZSpecificConfig
@@ -77,11 +71,10 @@ class AloneZStagesConfig
         return s_Settings;
     }
 
-    static array<AloneZStageReward> GetHourlyRewards()
+    static int GetHourlyCoinsReward()
     {
         if (!s_Time) Load();
-        if (!s_Time.HourlyRewards) return new array<AloneZStageReward>();
-        return s_Time.HourlyRewards;
+        return s_Time.HourlyCoinsReward;
     }
 
     static array<AloneZStage> GetZed()    { if (!s_Zed) Load(); return s_Zed.Stages; }
@@ -161,12 +154,6 @@ class AloneZStagesConfig
         JsonFileLoader<AloneZCategoryConfig>.JsonLoadFile(path, cfg);
         if (!cfg) { cfg = new AloneZCategoryConfig(); cfg.Stages = new array<AloneZStage>(); }
         if (!cfg.Stages) cfg.Stages = new array<AloneZStage>();
-        for (int i = 0; i < cfg.Stages.Count(); i++)
-        {
-            AloneZStage st = cfg.Stages.Get(i);
-            if (!st) continue;
-            if (!st.Rewards) st.Rewards = new array<AloneZStageReward>();
-        }
         return cfg;
     }
 
@@ -178,15 +165,8 @@ class AloneZStagesConfig
         }
         AloneZTimeConfig cfg;
         JsonFileLoader<AloneZTimeConfig>.JsonLoadFile(path, cfg);
-        if (!cfg) { cfg = new AloneZTimeConfig(); cfg.Stages = new array<AloneZStage>(); cfg.HourlyRewards = new array<AloneZStageReward>(); }
+        if (!cfg) { cfg = new AloneZTimeConfig(); cfg.Stages = new array<AloneZStage>(); cfg.HourlyCoinsReward = 200; }
         if (!cfg.Stages) cfg.Stages = new array<AloneZStage>();
-        if (!cfg.HourlyRewards) cfg.HourlyRewards = new array<AloneZStageReward>();
-        for (int i = 0; i < cfg.Stages.Count(); i++)
-        {
-            AloneZStage st = cfg.Stages.Get(i);
-            if (!st) continue;
-            if (!st.Rewards) st.Rewards = new array<AloneZStageReward>();
-        }
         return cfg;
     }
 
@@ -196,9 +176,10 @@ class AloneZStagesConfig
         {
             string def = "{\n";
             def = def + "    \"LevelUpMessage\": \"Parabens! Voce subiu para Level {level} em {category}!\",\n";
-            def = def + "    \"RewardMessage\": \"Voce ganhou: {item} x{count}\",\n";
-            def = def + "    \"HourlyMessage\": \"Recompensa por {hours} hora(s) jogada(s)!\",\n";
-            def = def + "    \"LevelMaxMessage\": \"LEVEL MAX\"\n";
+            def = def + "    \"RewardMessage\": \"Voce ganhou: {coins} coins!\",\n";
+            def = def + "    \"HourlyMessage\": \"Recompensa por {hours} hora(s) jogada(s): {coins} coins!\",\n";
+            def = def + "    \"LevelMaxMessage\": \"LEVEL MAX\",\n";
+            def = def + "    \"ShopPath\": \"$profile:FlameHost/Addons/Shop/Players/PlayerDatabase\"\n";
             def = def + "}";
             WriteFile(path, def);
         }
@@ -206,9 +187,10 @@ class AloneZStagesConfig
         JsonFileLoader<AloneZSettings>.JsonLoadFile(path, cfg);
         if (!cfg) cfg = new AloneZSettings();
         if (cfg.LevelUpMessage == "") cfg.LevelUpMessage = "Parabens! Voce subiu para Level {level} em {category}!";
-        if (cfg.RewardMessage == "") cfg.RewardMessage = "Voce ganhou: {item} x{count}";
-        if (cfg.HourlyMessage == "") cfg.HourlyMessage = "Recompensa por {hours} hora(s) jogada(s)!";
+        if (cfg.RewardMessage == "") cfg.RewardMessage = "Voce ganhou: {coins} coins!";
+        if (cfg.HourlyMessage == "") cfg.HourlyMessage = "Recompensa por {hours} hora(s) jogada(s): {coins} coins!";
         if (cfg.LevelMaxMessage == "") cfg.LevelMaxMessage = "LEVEL MAX";
+        if (cfg.ShopPath == "") cfg.ShopPath = "$profile:FlameHost/Addons/Shop/Players/PlayerDatabase";
         return cfg;
     }
 
@@ -221,13 +203,7 @@ class AloneZStagesConfig
             def = def + "        {\n";
             def = def + "            \"Name\": \"Animal_UrsusArctos\",\n";
             def = def + "            \"Units\": 1,\n";
-            def = def + "            \"Rewards\": [\n";
-            def = def + "                {\n";
-            def = def + "                    \"Item\": \"BearPelt\",\n";
-            def = def + "                    \"Count\": 1,\n";
-            def = def + "                    \"Quantity\": 0\n";
-            def = def + "                }\n";
-            def = def + "            ]\n";
+            def = def + "            \"CoinsReward\": 1000\n";
             def = def + "        }\n";
             def = def + "    ]\n";
             def = def + "}";
@@ -240,23 +216,11 @@ class AloneZStagesConfig
         return cfg;
     }
 
-    static string RewardJson(string item, int count, int quantity)
-    {
-        string s = "            {\n";
-        s = s + "                \"Item\": \"" + item + "\",\n";
-        s = s + "                \"Count\": " + count.ToString() + ",\n";
-        s = s + "                \"Quantity\": " + quantity.ToString() + "\n";
-        s = s + "            }";
-        return s;
-    }
-
-    static string StageJson(int units, string rewardsBlock)
+    static string StageJson(int units, int coinsReward)
     {
         string s = "        {\n";
         s = s + "            \"Units\": " + units.ToString() + ",\n";
-        s = s + "            \"Rewards\": [\n";
-        s = s + rewardsBlock + "\n";
-        s = s + "            ]\n";
+        s = s + "            \"CoinsReward\": " + coinsReward.ToString() + "\n";
         s = s + "        }";
         return s;
     }
@@ -264,9 +228,9 @@ class AloneZStagesConfig
     static string DefaultZedJson()
     {
         string j = "{\n    \"Stages\": [\n";
-        j = j + StageJson(4,  RewardJson("BandageDressing", 2, 0)) + ",\n";
-        j = j + StageJson(10, RewardJson("Rag", 4, 4)) + ",\n";
-        j = j + StageJson(25, RewardJson("SodaCan_Cola", 1, 0)) + "\n";
+        j = j + StageJson(4,  500) + ",\n";
+        j = j + StageJson(10, 1000) + ",\n";
+        j = j + StageJson(25, 2500) + "\n";
         j = j + "    ]\n}";
         return j;
     }
@@ -274,8 +238,8 @@ class AloneZStagesConfig
     static string DefaultAnimalJson()
     {
         string j = "{\n    \"Stages\": [\n";
-        j = j + StageJson(3, RewardJson("BandageDressing", 1, 0)) + ",\n";
-        j = j + StageJson(8, RewardJson("Rag", 2, 4)) + "\n";
+        j = j + StageJson(3, 300) + ",\n";
+        j = j + StageJson(8, 800) + "\n";
         j = j + "    ]\n}";
         return j;
     }
@@ -283,14 +247,11 @@ class AloneZStagesConfig
     static string DefaultTimeJson()
     {
         string j = "{\n    \"Stages\": [\n";
-        j = j + StageJson(10, RewardJson("BandageDressing", 1, 0)) + ",\n";
-        j = j + StageJson(30, RewardJson("Rag", 2, 4)) + ",\n";
-        j = j + StageJson(60, RewardJson("SodaCan_Cola", 1, 0)) + "\n";
+        j = j + StageJson(10, 500) + ",\n";
+        j = j + StageJson(30, 1500) + ",\n";
+        j = j + StageJson(60, 3000) + "\n";
         j = j + "    ],\n";
-        j = j + "    \"HourlyRewards\": [\n";
-        j = j + RewardJson("BandageDressing", 2, 0) + ",\n";
-        j = j + RewardJson("SodaCan_Cola", 1, 0) + "\n";
-        j = j + "    ]\n";
+        j = j + "    \"HourlyCoinsReward\": 200\n";
         j = j + "}";
         return j;
     }
@@ -298,9 +259,9 @@ class AloneZStagesConfig
     static string DefaultDistanceJson()
     {
         string j = "{\n    \"Stages\": [\n";
-        j = j + StageJson(10,  RewardJson("BandageDressing", 1, 0)) + ",\n";
-        j = j + StageJson(50,  RewardJson("Rag", 2, 4)) + ",\n";
-        j = j + StageJson(100, RewardJson("SodaCan_Cola", 1, 0)) + "\n";
+        j = j + StageJson(10,  300) + ",\n";
+        j = j + StageJson(50,  1000) + ",\n";
+        j = j + StageJson(100, 2500) + "\n";
         j = j + "    ]\n}";
         return j;
     }
@@ -308,8 +269,8 @@ class AloneZStagesConfig
     static string DefaultDeathsJson()
     {
         string j = "{\n    \"Stages\": [\n";
-        j = j + StageJson(2, RewardJson("BandageDressing", 1, 0)) + ",\n";
-        j = j + StageJson(5, RewardJson("Rag", 3, 4)) + "\n";
+        j = j + StageJson(2, 500) + ",\n";
+        j = j + StageJson(5, 1500) + "\n";
         j = j + "    ]\n}";
         return j;
     }

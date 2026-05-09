@@ -114,23 +114,12 @@ class AloneZProgressSrv
         SendMsg(pb, msg);
     }
 
-    static void SendRewardItemMessage(PlayerBase pb, string itemClass, int count)
+    static void SendCoinsRewardMessage(PlayerBase pb, int coins)
     {
-        if (!pb || !pb.GetIdentity()) return;
-        string displayName;
-        string cfgPath = "CfgVehicles " + itemClass + " displayName";
-        GetGame().ConfigGetText(cfgPath, displayName);
-        if (displayName == "")
-        {
-            cfgPath = "CfgWeapons " + itemClass + " displayName";
-            GetGame().ConfigGetText(cfgPath, displayName);
-        }
-        if (displayName == "") displayName = itemClass;
-
+        if (!pb || !pb.GetIdentity() || coins <= 0) return;
         AloneZSettings s = AloneZStagesConfig.GetSettings();
         string msg = s.RewardMessage;
-        msg.Replace("{item}", displayName);
-        msg.Replace("{count}", count.ToString());
+        msg.Replace("{coins}", coins.ToString());
         SendMsg(pb, msg);
     }
 
@@ -140,33 +129,13 @@ class AloneZProgressSrv
         SendMsg(pb, s.LevelMaxMessage + " — " + category);
     }
 
-    static void GiveItems(PlayerBase pb, AloneZPlayerData d, array<AloneZStageReward> rewards)
+    static void GiveCoins(PlayerBase pb, string uid, int coins)
     {
-        if (!pb || !d || !rewards) return;
-        vector pos = pb.GetPosition();
-        for (int i = 0; i < rewards.Count(); i++)
-        {
-            AloneZStageReward rw = rewards.Get(i);
-            if (!rw || rw.Item == "") continue;
-            int rwCount = rw.Count;
-            if (rwCount <= 0) rwCount = 1;
-            d.RewardCount += rwCount;
-            SendRewardItemMessage(pb, rw.Item, rwCount);
-            for (int k = 0; k < rwCount; k++)
-            {
-                EntityAI item = pb.GetInventory().CreateInInventory(rw.Item);
-                if (!item) item = EntityAI.Cast(GetGame().CreateObjectEx(rw.Item, pos, ECE_PLACE_ON_SURFACE));
-                ItemBase ib = ItemBase.Cast(item);
-                if (ib && rw.Quantity > 0)
-                {
-                    float maxQ = ib.GetQuantityMax();
-                    float q = rw.Quantity;
-                    if (maxQ > 0 && q > maxQ) q = maxQ;
-                    ib.SetQuantity(q);
-                    ib.SetSynchDirty();
-                }
-            }
-        }
+        if (!pb || !pb.GetIdentity() || coins <= 0) return;
+        string steamId = pb.GetIdentity().GetPlainId();
+        string playerName = pb.GetIdentity().GetName();
+        AloneZShopDB.AddCoins(steamId, playerName, coins);
+        SendCoinsRewardMessage(pb, coins);
     }
 
     static void SyncAll(PlayerBase pb, string uid, AloneZPlayerData d)
@@ -249,7 +218,14 @@ class AloneZProgressSrv
             {
                 safeLoop++;
                 value -= stepUnits;
-                GiveItems(pb, d, arr.Get(idx).Rewards);
+
+                int coins = arr.Get(idx).CoinsReward;
+                if (coins > 0)
+                {
+                    d.RewardCount += coins;
+                    GiveCoins(pb, uid, coins);
+                }
+
                 stage += 1;
 
                 string pName = pb.GetIdentity().GetName();
@@ -285,15 +261,17 @@ class AloneZProgressSrv
     {
         if (!pb || !pb.GetIdentity()) return;
         AloneZPlayerData d = AloneZPlayerDB.Load(uid);
-        array<AloneZStageReward> hourlyRw = AloneZStagesConfig.GetHourlyRewards();
-        if (!hourlyRw || hourlyRw.Count() == 0) return;
+        int hourlyCoins = AloneZStagesConfig.GetHourlyCoinsReward();
+        if (hourlyCoins <= 0) return;
 
         d.TotalHours += 1;
-        GiveItems(pb, d, hourlyRw);
+        d.RewardCount += hourlyCoins;
+        GiveCoins(pb, uid, hourlyCoins);
 
         AloneZSettings s = AloneZStagesConfig.GetSettings();
         string msg = s.HourlyMessage;
         msg.Replace("{hours}", d.TotalHours.ToString());
+        msg.Replace("{coins}", hourlyCoins.ToString());
         SendMsg(pb, msg);
 
         string pName = pb.GetIdentity().GetName();
@@ -344,7 +322,12 @@ class AloneZProgressSrv
         if (value >= objUnits)
         {
             value -= objUnits;
-            GiveItems(pb, d, obj.Rewards);
+            int coins = obj.CoinsReward;
+            if (coins > 0)
+            {
+                d.RewardCount += coins;
+                GiveCoins(pb, uid, coins);
+            }
             stage += 1;
             string pName = pb.GetIdentity().GetName();
             AloneZLog.WriteUpLog(pName, uid, objName, stage);
