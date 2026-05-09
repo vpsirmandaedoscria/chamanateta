@@ -128,9 +128,8 @@ modded class PlayerBase
             if (!ctx.Read(pn) || !pn) return;
             string nTitle = pn.param1;
             string nMsg = pn.param2;
-            int nSec = pn.param3;
-            if (nSec <= 0) nSec = 5;
-            NotificationSystem.AddNotificationExtended(nSec, nTitle, nMsg, "set:dayz_gui image:icon_unlock");
+            string fullMsg = "[" + nTitle + "] " + nMsg;
+            GetGame().GetMission().OnEvent(ChatMessageEventTypeID, new ChatMessageEventParams(CCDirect, "", fullMsg, ""));
         }
         else if (rpc_type == 80001)
         {
