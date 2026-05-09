@@ -157,8 +157,7 @@ modded class PlayerBase
 
         if (!killerPB || !killerPB.GetIdentity()) return;
         if (killerPB == this) return;
-        if (!GetIdentity()) return;
-        if (killerPB.GetIdentity().GetPlainId() == GetIdentity().GetPlainId()) return;
+        if (GetIdentity() && killerPB.GetIdentity().GetPlainId() == GetIdentity().GetPlainId()) return;
 
         string uid = killerPB.GetIdentity().GetPlainId();
         AloneZProgressSrv.AddProgress(killerPB, uid, AloneZCat.DEATH, 1);
