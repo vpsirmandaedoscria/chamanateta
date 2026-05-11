@@ -31,42 +31,39 @@ class AloneZLog
         return hr.ToStringLen(2) + ":" + mn.ToStringLen(2) + ":" + sc.ToStringLen(2);
     }
 
-    static void WriteUpLog(string playerName, string steamId, string category, int newLevel, int coinsReceived, int totalReward)
+    static void WriteLog(string logLine)
     {
         EnsureLogDir();
         string dateStr = DateStr();
-        string path = AloneZStagesConfig.LOGS_DIR + "/up_" + dateStr + ".log";
+        string path = AloneZStagesConfig.LOGS_DIR + "/" + dateStr + ".log";
         FileHandle f = OpenFile(path, FileMode.APPEND);
         if (f)
         {
-            AloneZSettings s = AloneZStagesConfig.GetSettings();
-            string lvlMsg = s.LevelUpMessage;
-            lvlMsg.Replace("{level}", newLevel.ToString());
-            lvlMsg.Replace("{category}", category);
-            string rwdMsg = s.RewardMessage;
-            rwdMsg.Replace("{coins}", coinsReceived.ToString());
-            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + lvlMsg + " " + rwdMsg + " totalizando " + totalReward.ToString() + " ganhos";
-            FPrintln(f, line);
+            FPrintln(f, logLine);
             CloseFile(f);
         }
     }
 
+    static void WriteUpLog(string playerName, string steamId, string category, int newLevel, int coinsReceived, int totalReward)
+    {
+        AloneZSettings s = AloneZStagesConfig.GetSettings();
+        string lvlMsg = s.LevelUpMessage;
+        lvlMsg.Replace("{level}", newLevel.ToString());
+        lvlMsg.Replace("{category}", category);
+        string rwdMsg = s.RewardMessage;
+        rwdMsg.Replace("{coins}", coinsReceived.ToString());
+        string line = "[" + DateStr() + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + lvlMsg + " " + rwdMsg + " totalizando " + totalReward.ToString() + " ganhos";
+        WriteLog(line);
+    }
+
     static void WriteHourLog(string playerName, string steamId, int totalHours, int coinsReceived, int totalReward)
     {
-        EnsureLogDir();
-        string dateStr = DateStr();
-        string path = AloneZStagesConfig.LOGS_DIR + "/HoraJogada_" + dateStr + ".log";
-        FileHandle f = OpenFile(path, FileMode.APPEND);
-        if (f)
-        {
-            AloneZSettings s = AloneZStagesConfig.GetSettings();
-            string hrMsg = s.HourlyMessage;
-            hrMsg.Replace("{hours}", totalHours.ToString());
-            hrMsg.Replace("{coins}", coinsReceived.ToString());
-            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + hrMsg + " totalizando " + totalReward.ToString() + " ganhos";
-            FPrintln(f, line);
-            CloseFile(f);
-        }
+        AloneZSettings s = AloneZStagesConfig.GetSettings();
+        string hrMsg = s.HourlyMessage;
+        hrMsg.Replace("{hours}", totalHours.ToString());
+        hrMsg.Replace("{coins}", coinsReceived.ToString());
+        string line = "[" + DateStr() + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + hrMsg + " totalizando " + totalReward.ToString() + " ganhos";
+        WriteLog(line);
     }
 }
 
