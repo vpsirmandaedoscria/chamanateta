@@ -121,7 +121,7 @@ modded class MissionServer
             if (!chatParams) return;
             string senderName = chatParams.param2;
             string text = chatParams.param3;
-            if (text.IndexOf("/alonez") != 0) return;
+            if (text.IndexOf("!alonez") != 0) return;
 
             array<Man> chatPlayers = new array<Man>();
             GetGame().GetPlayers(chatPlayers);

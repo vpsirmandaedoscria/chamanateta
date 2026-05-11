@@ -15,35 +15,45 @@ class AloneZLog
         AloneZStagesConfig.EnsureDir();
     }
 
-    static void WriteUpLog(string playerName, string steamId, string category, int newLevel)
+    static string DateStr()
+    {
+        int yr, mo, dy, hr, mn, sc;
+        GetYearMonthDay(yr, mo, dy);
+        GetHourMinuteSecond(hr, mn, sc);
+        return yr.ToStringLen(4) + "-" + mo.ToStringLen(2) + "-" + dy.ToStringLen(2);
+    }
+
+    static string TimeStr()
+    {
+        int yr, mo, dy, hr, mn, sc;
+        GetYearMonthDay(yr, mo, dy);
+        GetHourMinuteSecond(hr, mn, sc);
+        return hr.ToStringLen(2) + ":" + mn.ToStringLen(2) + ":" + sc.ToStringLen(2);
+    }
+
+    static void WriteUpLog(string playerName, string steamId, string category, int newLevel, int coinsReceived)
     {
         EnsureLogDir();
-        string path = AloneZStagesConfig.LOGS_DIR + "/up.log";
+        string dateStr = DateStr();
+        string path = AloneZStagesConfig.LOGS_DIR + "/up_" + dateStr + ".log";
         FileHandle f = OpenFile(path, FileMode.APPEND);
         if (f)
         {
-            int yr, mo, dy, hr, mn, sc;
-            GetYearMonthDay(yr, mo, dy);
-            GetHourMinuteSecond(hr, mn, sc);
-            string ts = yr.ToStringLen(4) + "-" + mo.ToStringLen(2) + "-" + dy.ToStringLen(2) + " " + hr.ToStringLen(2) + ":" + mn.ToStringLen(2) + ":" + sc.ToStringLen(2);
-            string line = "[" + ts + "] " + playerName + " (" + steamId + ") subiu para Level " + newLevel.ToString() + " em " + category;
+            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") subiu para Level " + newLevel.ToString() + " em " + category + " — Recebeu: " + coinsReceived.ToString() + " coins";
             FPrintln(f, line);
             CloseFile(f);
         }
     }
 
-    static void WriteHourLog(string playerName, string steamId, int totalHours)
+    static void WriteHourLog(string playerName, string steamId, int totalHours, int coinsReceived)
     {
         EnsureLogDir();
-        string path = AloneZStagesConfig.LOGS_DIR + "/HoraJogada.log";
+        string dateStr = DateStr();
+        string path = AloneZStagesConfig.LOGS_DIR + "/HoraJogada_" + dateStr + ".log";
         FileHandle f = OpenFile(path, FileMode.APPEND);
         if (f)
         {
-            int yr, mo, dy, hr, mn, sc;
-            GetYearMonthDay(yr, mo, dy);
-            GetHourMinuteSecond(hr, mn, sc);
-            string ts = yr.ToStringLen(4) + "-" + mo.ToStringLen(2) + "-" + dy.ToStringLen(2) + " " + hr.ToStringLen(2) + ":" + mn.ToStringLen(2) + ":" + sc.ToStringLen(2);
-            string line = "[" + ts + "] " + playerName + " (" + steamId + ") completou " + totalHours.ToString() + " hora(s) jogada(s)";
+            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") completou " + totalHours.ToString() + " hora(s) jogada(s) — Recebeu: " + coinsReceived.ToString() + " coins";
             FPrintln(f, line);
             CloseFile(f);
         }
@@ -236,7 +246,7 @@ class AloneZProgressSrv
                 stage += 1;
 
                 string pName = pb.GetIdentity().GetName();
-                AloneZLog.WriteUpLog(pName, uid, CategoryName(cat), stage);
+                AloneZLog.WriteUpLog(pName, uid, CategoryName(cat), stage, coins);
                 SendLevelUpMessage(pb, CategoryName(cat), stage);
 
                 if (stage >= maxStage)
@@ -282,7 +292,7 @@ class AloneZProgressSrv
         SendMsg(pb, msg);
 
         string pName = pb.GetIdentity().GetName();
-        AloneZLog.WriteHourLog(pName, uid, d.TotalHours);
+        AloneZLog.WriteHourLog(pName, uid, d.TotalHours, hourlyCoins);
 
         AloneZPlayerDB.Save(uid, d);
         SyncAll(pb, uid, d);
@@ -337,7 +347,7 @@ class AloneZProgressSrv
             }
             stage += 1;
             string pName = pb.GetIdentity().GetName();
-            AloneZLog.WriteUpLog(pName, uid, objName, stage);
+            AloneZLog.WriteUpLog(pName, uid, objName, stage, coins);
             SendLevelUpMessage(pb, objName, stage);
         }
 
@@ -356,7 +366,7 @@ class AloneZProgressSrv
         string lower = text;
         lower.ToLower();
 
-        if (lower == "/alonez reload all")
+        if (lower == "!alonez reload all")
         {
             AloneZStagesConfig.Reload("all");
             SendNotify(pb, "AloneZ Progress", "Todas as configs recarregadas com sucesso!", 5);
@@ -371,7 +381,7 @@ class AloneZProgressSrv
         bool found = false;
         for (int i = 0; i < validNames.Count(); i++)
         {
-            if (lower == "/alonez reload " + validNames.Get(i))
+            if (lower == "!alonez reload " + validNames.Get(i))
             {
                 AloneZStagesConfig.Reload(validNames.Get(i));
                 SendNotify(pb, "AloneZ Progress", "Config '" + validNames.Get(i) + "' recarregada com sucesso!", 5);
@@ -380,9 +390,9 @@ class AloneZProgressSrv
             }
         }
 
-        if (!found && lower.IndexOf("/alonez") == 0)
+        if (!found && lower.IndexOf("!alonez") == 0)
         {
-            SendNotify(pb, "AloneZ Progress", "Comando nao reconhecido. Use: /alonez reload all", 5);
+            SendNotify(pb, "AloneZ Progress", "Comando nao reconhecido. Use: !alonez reload all", 5);
         }
     }
 }
