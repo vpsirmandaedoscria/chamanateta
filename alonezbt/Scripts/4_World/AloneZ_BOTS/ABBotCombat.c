@@ -5,6 +5,8 @@ class ABBotCombat
 	protected float m_MeleeCooldown;
 	protected int m_ShotsFired;
 	protected int m_ShotsHit;
+	protected bool m_WeaponRaised;
+	protected float m_RaiseTimer;
 	
 	void ABBotCombat(ABBot bot)
 	{
@@ -13,6 +15,34 @@ class ABBotCombat
 		m_MeleeCooldown = 1.5;
 		m_ShotsFired = 0;
 		m_ShotsHit = 0;
+		m_WeaponRaised = false;
+		m_RaiseTimer = 0;
+	}
+	
+	void RaiseWeapon(PlayerBase botEntity)
+	{
+		if (!botEntity)
+			return;
+		
+		HumanInputController hic = botEntity.GetInputController();
+		if (hic)
+		{
+			hic.OverrideRaise(true, true);
+			m_WeaponRaised = true;
+		}
+	}
+	
+	void LowerWeapon(PlayerBase botEntity)
+	{
+		if (!botEntity)
+			return;
+		
+		HumanInputController hic = botEntity.GetInputController();
+		if (hic)
+		{
+			hic.OverrideRaise(true, false);
+			m_WeaponRaised = false;
+		}
 	}
 	
 	void FireAtTarget(PlayerBase target)
@@ -26,6 +56,17 @@ class ABBotCombat
 		
 		ABDifficultyConfig diff = m_Bot.GetDifficultyConfig();
 		if (!diff)
+			return;
+		
+		if (!m_WeaponRaised)
+		{
+			RaiseWeapon(botEntity);
+			m_RaiseTimer = 0;
+			return;
+		}
+		
+		m_RaiseTimer += 1.0;
+		if (m_RaiseTimer < 0.5)
 			return;
 		
 		m_ShotsFired++;
@@ -78,27 +119,81 @@ class ABBotCombat
 			return;
 		
 		Weapon_Base weapon = Weapon_Base.Cast(botEntity.GetItemInHands());
-		if (weapon)
+		if (!weapon)
+			return;
+		
+		int mi = weapon.GetCurrentMuzzle();
+		
+		if (weapon.IsChamberFull(mi))
 		{
-			int mi = weapon.GetCurrentMuzzle();
-			if (weapon.IsChamberFull(mi))
+			weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleAction, 300, false, botEntity);
+		}
+		else
+		{
+			Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
+			if (mag && mag.GetAmmoCount() > 0)
 			{
-				weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
+				weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
 			}
 			else
 			{
-				Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
-				if (mag && mag.GetAmmoCount() > 0)
-				{
-					weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
-				}
+				TryReload(botEntity, weapon);
+			}
+		}
+	}
+	
+	protected void CycleAction(PlayerBase botEntity)
+	{
+		if (!botEntity)
+			return;
+		
+		Weapon_Base weapon = Weapon_Base.Cast(botEntity.GetItemInHands());
+		if (!weapon)
+			return;
+		
+		int mi = weapon.GetCurrentMuzzle();
+		if (weapon.IsChamberEmpty(mi))
+		{
+			weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
+		}
+	}
+	
+	protected void TryReload(PlayerBase botEntity, Weapon_Base weapon)
+	{
+		if (!botEntity || !weapon)
+			return;
+		
+		WeaponManager wm = botEntity.GetWeaponManager();
+		if (!wm)
+			return;
+		
+		int mi = weapon.GetCurrentMuzzle();
+		Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
+		
+		if (mag && mag.GetAmmoCount() > 0)
+			return;
+		
+		Magazine spareMag = null;
+		EntityAI attachment;
+		int attCount = botEntity.GetInventory().GetAttachmentSlotsCount();
+		for (int i = 0; i < attCount; i++)
+		{
+			EntityAI att = botEntity.GetInventory().FindAttachment(i);
+			if (!att)
+				continue;
+			
+			Magazine testMag = Magazine.Cast(att);
+			if (testMag && testMag.GetAmmoCount() > 0 && weapon.CanChamberFromMag(mi, testMag))
+			{
+				spareMag = testMag;
+				break;
 			}
 		}
 		
-		HumanCommandMove moveCmd = botEntity.GetCommand_Move();
-		if (moveCmd)
+		if (spareMag && wm.CanAttachMagazine(weapon, spareMag))
 		{
-			moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
+			wm.AttachMagazine(spareMag);
 		}
 	}
 	
