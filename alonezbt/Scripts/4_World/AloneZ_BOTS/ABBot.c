@@ -36,6 +36,8 @@ class ABBot
 	protected float m_StealthTimer;
 	
 	protected ref ABBotGroup m_Group;
+	protected ref ABBotMoveCommand m_MoveCommand;
+	protected bool m_MoveCommandStarted;
 	
 	void ABBot(PlayerBase entity, string name, string difficulty, vector spawnPos, string groupName)
 	{
@@ -69,6 +71,7 @@ class ABBot
 		m_TimeSinceLastPositionLog = 0;
 		m_TimeSinceStateChange = 0;
 		m_StealthTimer = 0;
+		m_MoveCommandStarted = false;
 		
 		ABLogger.LogInit(m_Name, "default", m_Difficulty);
 		ABLogger.LogSpawn(m_Name, m_Difficulty, spawnPos, m_GroupName);
@@ -317,10 +320,23 @@ class ABBot
 		}
 	}
 	
+	void StartMoveCommand()
+	{
+		if (!m_BotEntity || m_MoveCommandStarted)
+			return;
+		
+		m_MoveCommand = new ABBotMoveCommand();
+		m_BotEntity.StartCommand_Script(m_MoveCommand);
+		m_MoveCommandStarted = true;
+	}
+	
 	void MoveTo(vector targetPos, float speedMultiplier)
 	{
 		if (!m_BotEntity || !m_IsAlive)
 			return;
+		
+		if (!m_MoveCommandStarted)
+			StartMoveCommand();
 		
 		vector currentPos = GetPosition();
 		vector direction = targetPos - currentPos;
@@ -338,44 +354,29 @@ class ABBot
 		float yaw = direction.VectorToAngles()[0];
 		m_BotEntity.SetOrientation(Vector(yaw, 0, 0));
 		
-		HumanInputController hic = m_BotEntity.GetInputController();
-		if (hic)
-		{
-			float inputSpeed = speedMultiplier;
-			if (inputSpeed < 0.5)
-				inputSpeed = 1.0;
-			else if (inputSpeed < 1.0)
-				inputSpeed = 2.0;
-			else
-				inputSpeed = 2.5;
-			
-			hic.OverrideMovementSpeed(true, inputSpeed);
-			hic.OverrideMovementAngle(true, 0);
-		}
+		float baseSpeed = 1.8;
+		if (speedMultiplier < 0.5)
+			baseSpeed = 0.8;
+		else if (speedMultiplier < 1.0)
+			baseSpeed = 1.8;
+		else
+			baseSpeed = 3.5;
 		
-		HumanCommandMove moveCmd = m_BotEntity.GetCommand_Move();
-		if (moveCmd)
+		float speed = baseSpeed * speedMultiplier;
+		if (speed > 5.0)
+			speed = 5.0;
+		
+		if (m_MoveCommand)
 		{
-			if (speedMultiplier < 0.5)
-			{
-				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_CROUCH);
-			}
-			else
-			{
-				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
-			}
+			m_MoveCommand.SetMovement(direction, speed);
 		}
 	}
 	
 	void StopMovement()
 	{
-		if (!m_BotEntity)
-			return;
-		
-		HumanInputController hic = m_BotEntity.GetInputController();
-		if (hic)
+		if (m_MoveCommand)
 		{
-			hic.OverrideMovementSpeed(true, 0);
+			m_MoveCommand.Stop();
 		}
 	}
 	
