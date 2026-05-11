@@ -37,7 +37,6 @@ class ABBot
 	
 	protected ref ABBotGroup m_Group;
 	protected ref ABBotMoveCommand m_MoveCommand;
-	protected bool m_MoveCommandStarted;
 	
 	void ABBot(PlayerBase entity, string name, string difficulty, vector spawnPos, string groupName)
 	{
@@ -66,12 +65,12 @@ class ABBot
 		m_Combat = new ABBotCombat(this);
 		m_Patrol = new ABBotPatrol(this);
 		m_Brain = new ABBotBrain(this);
+		m_MoveCommand = new ABBotMoveCommand(entity);
 		
 		m_TimeSinceLastUpdate = 0;
 		m_TimeSinceLastPositionLog = 0;
 		m_TimeSinceStateChange = 0;
 		m_StealthTimer = 0;
-		m_MoveCommandStarted = false;
 		
 		ABLogger.LogInit(m_Name, "default", m_Difficulty);
 		ABLogger.LogSpawn(m_Name, m_Difficulty, spawnPos, m_GroupName);
@@ -320,23 +319,10 @@ class ABBot
 		}
 	}
 	
-	void StartMoveCommand()
-	{
-		if (!m_BotEntity || m_MoveCommandStarted)
-			return;
-		
-		m_MoveCommand = new ABBotMoveCommand();
-		m_BotEntity.StartCommand_Script(m_MoveCommand);
-		m_MoveCommandStarted = true;
-	}
-	
 	void MoveTo(vector targetPos, float speedMultiplier)
 	{
 		if (!m_BotEntity || !m_IsAlive)
 			return;
-		
-		if (!m_MoveCommandStarted)
-			StartMoveCommand();
 		
 		vector currentPos = GetPosition();
 		vector direction = targetPos - currentPos;
@@ -354,30 +340,22 @@ class ABBot
 		float yaw = direction.VectorToAngles()[0];
 		m_BotEntity.SetOrientation(Vector(yaw, 0, 0));
 		
-		float baseSpeed = 1.8;
+		float moveSpeed = 1.0;
 		if (speedMultiplier < 0.5)
-			baseSpeed = 0.8;
+			moveSpeed = 1.0;
 		else if (speedMultiplier < 1.0)
-			baseSpeed = 1.8;
+			moveSpeed = 2.0;
 		else
-			baseSpeed = 3.5;
-		
-		float speed = baseSpeed * speedMultiplier;
-		if (speed > 5.0)
-			speed = 5.0;
+			moveSpeed = 3.0;
 		
 		if (m_MoveCommand)
-		{
-			m_MoveCommand.SetMovement(direction, speed);
-		}
+			m_MoveCommand.SetMovement(moveSpeed, 0);
 	}
 	
 	void StopMovement()
 	{
 		if (m_MoveCommand)
-		{
 			m_MoveCommand.Stop();
-		}
 	}
 	
 	void LookAt(vector targetPos)
