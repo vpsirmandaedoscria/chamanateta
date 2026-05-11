@@ -87,7 +87,7 @@ class ABBotCombat
 			}
 			else
 			{
-				Magazine mag = Magazine.Cast(weapon.GetAttachedMagazine());
+				Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
 				if (mag && mag.GetAmmoCount() > 0)
 				{
 					weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
