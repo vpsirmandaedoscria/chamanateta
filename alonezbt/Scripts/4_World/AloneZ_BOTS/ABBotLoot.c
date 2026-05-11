@@ -121,8 +121,7 @@ class ABBotLoot
 			int mi = wpn.GetCurrentMuzzle();
 			if (wpn.IsChamberEmpty(mi))
 			{
-				if (magClass != "")
-					wpn.SpawnCartridgeToInternalMagazine(mi, "Bullet_762x39");
+				wpn.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
 			}
 		}
 	}
