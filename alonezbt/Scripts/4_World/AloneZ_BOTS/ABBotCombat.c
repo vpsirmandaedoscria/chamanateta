@@ -270,6 +270,10 @@ class ABBotCombat
 		if (!diff)
 			return;
 		
+		PlayerBase botEntity = m_Bot.GetEntity();
+		if (!botEntity)
+			return;
+		
 		float dist = m_Bot.DistanceToTarget();
 		
 		float meleeRange = 3.0;
@@ -278,6 +282,31 @@ class ABBotCombat
 		
 		if (dist > meleeRange)
 			return;
+		
+		if (!m_WeaponRaised)
+		{
+			RaiseWeapon(botEntity);
+			return;
+		}
+		
+		HumanCommandMove moveCmd = botEntity.GetCommand_Move();
+		if (moveCmd)
+		{
+			moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
+		}
+		
+		vector targetPos = target.GetPosition();
+		vector hitPos = targetPos + Vector(0, 1.0, 0);
+		float attackDist = 1.0;
+		if (dist < 1.5)
+			attackDist = 0.5;
+		
+		bool isStab = false;
+		EntityAI itemInHands = botEntity.GetItemInHands();
+		if (itemInHands && itemInHands.IsWeapon())
+			isStab = true;
+		
+		botEntity.StartCommand_Melee2(target, isStab, attackDist, hitPos);
 		
 		float hitChance = Math.Clamp(diff.AccuracyMax + (diff.Brutality * 0.2), 0.0, 1.0);
 		bool hit = Math.RandomFloat01() <= hitChance;
@@ -288,7 +317,7 @@ class ABBotCombat
 		{
 			damage = diff.MeleeDamage;
 			string meleeZone = GetRandomDamageZone();
-			target.ProcessDirectDamage(DT_CUSTOM, m_Bot.GetEntity(), meleeZone, "MeleeFist", "0 0 0", damage);
+			target.ProcessDirectDamage(DT_CUSTOM, botEntity, meleeZone, "MeleeFist", "0 0 0", damage);
 		}
 		
 		string targetName = "Unknown";
