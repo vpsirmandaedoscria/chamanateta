@@ -21,6 +21,7 @@ class ABConfig
 		ABLogger.Init();
 		ABLogger.Log("INFO", "CONFIG", "Carregando configuracoes AloneZ BOTS...");
 		
+		CreateDirectories();
 		LoadSettings();
 		LoadDifficulties();
 		LoadSpawnPoints();
@@ -28,6 +29,31 @@ class ABConfig
 		
 		s_Loaded = true;
 		ABLogger.Log("INFO", "CONFIG", "Configuracoes carregadas com sucesso!");
+	}
+	
+	static void CreateDirectories()
+	{
+		string basePath = "$profile:AloneZ";
+		if (!FileExist(basePath))
+			MakeDirectory(basePath);
+		
+		string botsPath = basePath + "\\BOTS";
+		if (!FileExist(botsPath))
+			MakeDirectory(botsPath);
+		
+		string diffPath = botsPath + "\\Difficulty";
+		if (!FileExist(diffPath))
+			MakeDirectory(diffPath);
+		
+		string spawnsPath = botsPath + "\\Spawns";
+		if (!FileExist(spawnsPath))
+			MakeDirectory(spawnsPath);
+		
+		string lootPath = botsPath + "\\Loot";
+		if (!FileExist(lootPath))
+			MakeDirectory(lootPath);
+		
+		ABLogger.Log("INFO", "CONFIG", "Diretorios criados/verificados");
 	}
 	
 	static void Reload()
