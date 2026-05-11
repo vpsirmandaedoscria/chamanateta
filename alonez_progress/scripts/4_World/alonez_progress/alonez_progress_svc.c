@@ -39,7 +39,13 @@ class AloneZLog
         FileHandle f = OpenFile(path, FileMode.APPEND);
         if (f)
         {
-            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") subiu para Level " + newLevel.ToString() + " em " + category + " — Recebeu: " + coinsReceived.ToString() + " coins";
+            AloneZSettings s = AloneZStagesConfig.GetSettings();
+            string lvlMsg = s.LevelUpMessage;
+            lvlMsg.Replace("{level}", newLevel.ToString());
+            lvlMsg.Replace("{category}", category);
+            string rwdMsg = s.RewardMessage;
+            rwdMsg.Replace("{coins}", coinsReceived.ToString());
+            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + lvlMsg + " " + rwdMsg;
             FPrintln(f, line);
             CloseFile(f);
         }
@@ -53,7 +59,11 @@ class AloneZLog
         FileHandle f = OpenFile(path, FileMode.APPEND);
         if (f)
         {
-            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") completou " + totalHours.ToString() + " hora(s) jogada(s) — Recebeu: " + coinsReceived.ToString() + " coins";
+            AloneZSettings s = AloneZStagesConfig.GetSettings();
+            string hrMsg = s.HourlyMessage;
+            hrMsg.Replace("{hours}", totalHours.ToString());
+            hrMsg.Replace("{coins}", coinsReceived.ToString());
+            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + hrMsg;
             FPrintln(f, line);
             CloseFile(f);
         }
