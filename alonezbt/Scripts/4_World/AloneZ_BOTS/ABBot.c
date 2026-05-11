@@ -328,33 +328,30 @@ class ABBot
 		float dist = direction.Length();
 		
 		if (dist < 0.3)
+		{
+			StopMovement();
 			return;
+		}
 		
 		direction.Normalize();
 		
 		float yaw = direction.VectorToAngles()[0];
 		m_BotEntity.SetOrientation(Vector(yaw, 0, 0));
 		
-		float baseSpeed = 1.8;
-		float speed = baseSpeed * speedMultiplier;
-		
-		float updateInterval = 1.0;
-		if (ABConfig.s_Settings)
-			updateInterval = ABConfig.s_Settings.BotUpdateInterval;
-		
-		float moveStep = speed * updateInterval;
-		
-		if (moveStep > dist)
-			moveStep = dist;
-		
-		vector newPos = currentPos + (direction * moveStep);
-		newPos[1] = GetGame().SurfaceY(newPos[0], newPos[2]);
-		
-		m_BotEntity.SetPosition(newPos);
-		
-		vector velocity = direction * speed;
-		velocity[1] = 0;
-		SetVelocity(m_BotEntity, velocity);
+		HumanInputController hic = m_BotEntity.GetInputController();
+		if (hic)
+		{
+			float inputSpeed = speedMultiplier;
+			if (inputSpeed < 0.5)
+				inputSpeed = 1.0;
+			else if (inputSpeed < 1.0)
+				inputSpeed = 2.0;
+			else
+				inputSpeed = 2.5;
+			
+			hic.OverrideMovementSpeed(true, inputSpeed);
+			hic.OverrideMovementAngle(true, 0);
+		}
 		
 		HumanCommandMove moveCmd = m_BotEntity.GetCommand_Move();
 		if (moveCmd)
@@ -367,6 +364,18 @@ class ABBot
 			{
 				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
 			}
+		}
+	}
+	
+	void StopMovement()
+	{
+		if (!m_BotEntity)
+			return;
+		
+		HumanInputController hic = m_BotEntity.GetInputController();
+		if (hic)
+		{
+			hic.OverrideMovementSpeed(true, 0);
 		}
 	}
 	
