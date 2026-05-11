@@ -1,6 +1,3 @@
-// AloneZ BOTS - Patrol/Route System
-// Rotas automaticas pelo mapa em ciclo loop
-
 class ABBotPatrol
 {
 	protected ABBot m_Bot;
@@ -12,7 +9,7 @@ class ABBotPatrol
 	protected float m_CurrentWaitTime;
 	protected bool m_LoopEnabled;
 	protected bool m_ReversePath;
-	protected int m_Direction; // 1 = forward, -1 = reverse
+	protected int m_Direction;
 	
 	protected float m_MoveTimer;
 	protected float m_StuckTimer;
@@ -45,12 +42,15 @@ class ABBotPatrol
 		if (!waypoints)
 			return;
 		
-		foreach (ABWaypoint wp : waypoints)
+		for (int i = 0; i < waypoints.Count(); i++)
 		{
+			ABWaypoint wp = waypoints[i];
+			if (!wp)
+				continue;
+			
 			vector pos = wp.GetPositionVector();
 			if (pos != vector.Zero)
 			{
-				// Ajustar Y para o terreno
 				pos[1] = GetGame().SurfaceY(pos[0], pos[2]);
 				m_Waypoints.Insert(pos);
 				m_WaitTimes.Insert(wp.WaitTime);
@@ -110,7 +110,6 @@ class ABBotPatrol
 			m_IsWaiting = false;
 			m_WaitTimer = 0;
 			
-			// Avancar para proximo waypoint
 			AdvanceWaypoint();
 		}
 	}
@@ -125,17 +124,14 @@ class ABBotPatrol
 		
 		float distToWaypoint = m_Bot.DistanceTo(targetWaypoint);
 		
-		// Chegou ao waypoint
 		if (distToWaypoint <= 3.0)
 		{
 			OnWaypointReached();
 			return;
 		}
 		
-		// Verificar se esta preso
 		CheckStuck(deltaTime);
 		
-		// Mover em direcao ao waypoint
 		float speed = 1.0;
 		ABDifficultyConfig diff = m_Bot.GetDifficultyConfig();
 		if (diff)
@@ -143,7 +139,6 @@ class ABBotPatrol
 		
 		m_Bot.MoveTo(targetWaypoint, speed);
 		
-		// Log de patrulha periodico
 		if (m_MoveTimer >= 15.0)
 		{
 			m_MoveTimer = 0;
@@ -161,7 +156,6 @@ class ABBotPatrol
 			ABLogger.LogPatrol(m_Bot.GetName(), m_CurrentWaypointIndex, GetCurrentWaypoint());
 		}
 		
-		// Iniciar espera no waypoint
 		m_IsWaiting = true;
 		m_WaitTimer = 0;
 		
@@ -180,7 +174,6 @@ class ABBotPatrol
 		
 		if (m_LoopEnabled)
 		{
-			// Ciclo loop - voltar ao inicio quando chegar ao fim
 			m_CurrentWaypointIndex = (m_CurrentWaypointIndex + m_Direction) % count;
 			
 			if (m_CurrentWaypointIndex < 0)
@@ -188,8 +181,7 @@ class ABBotPatrol
 		}
 		else if (m_ReversePath)
 		{
-			// Ping-pong - ida e volta
-			m_CurrentWaypointIndex += m_Direction;
+			m_CurrentWaypointIndex = m_CurrentWaypointIndex + m_Direction;
 			
 			if (m_CurrentWaypointIndex >= count)
 			{
@@ -208,8 +200,7 @@ class ABBotPatrol
 		}
 		else
 		{
-			// Linear - parar no ultimo
-			m_CurrentWaypointIndex += m_Direction;
+			m_CurrentWaypointIndex = m_CurrentWaypointIndex + m_Direction;
 			if (m_CurrentWaypointIndex >= count)
 				m_CurrentWaypointIndex = count - 1;
 		}
@@ -234,17 +225,14 @@ class ABBotPatrol
 			{
 				float movedDist = vector.Distance(m_LastPosition, currentPos);
 				
-				// Se nao se moveu quase nada em 5 segundos, pode estar preso
 				if (movedDist < 1.0)
 				{
 					ABLogger.Log("WARN", "PATROL", "Bot '" + m_Bot.GetName() + "' pode estar preso! Tentando contornar...");
 					
-					// Tentar contornar obstaculo
 					vector waypointDir = GetCurrentWaypoint() - currentPos;
 					waypointDir[1] = 0;
 					waypointDir.Normalize();
 					
-					// Mover lateralmente para tentar contornar
 					vector sideStep = Vector(-waypointDir[2], 0, waypointDir[0]) * 5.0;
 					m_Bot.MoveTo(currentPos + sideStep, 1.0);
 				}

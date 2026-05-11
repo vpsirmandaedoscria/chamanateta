@@ -1,6 +1,3 @@
-// AloneZ BOTS - Global Bot Manager
-// Gerencia o ciclo de vida de todos os bots do servidor
-
 class ABBotManager
 {
 	static ref ABBotManager s_Instance;
@@ -15,7 +12,7 @@ class ABBotManager
 		m_Initialized = false;
 		m_UpdateTimer = 0;
 		m_StatusLogTimer = 0;
-		m_StatusLogInterval = 300.0; // Log de status a cada 5 minutos
+		m_StatusLogInterval = 300.0;
 	}
 	
 	static ABBotManager GetInstance()
@@ -34,7 +31,6 @@ class ABBotManager
 		ABLogger.Log("INFO", "BOT_MGR", "  AloneZ BOTS v1.0.0 Iniciando");
 		ABLogger.Log("INFO", "BOT_MGR", "==================================");
 		
-		// Carregar configuracoes
 		ABConfig.Load();
 		
 		if (!ABConfig.s_Settings || !ABConfig.s_Settings.Enabled)
@@ -43,10 +39,7 @@ class ABBotManager
 			return;
 		}
 		
-		// Inicializar SpawnManager
 		ABSpawnManager.Init();
-		
-		// Spawnar todos os bots configurados
 		ABSpawnManager.SpawnAllConfigured();
 		
 		m_Initialized = true;
@@ -64,10 +57,8 @@ class ABBotManager
 		m_UpdateTimer += deltaTime;
 		m_StatusLogTimer += deltaTime;
 		
-		// Atualizar spawn manager (que atualiza grupos e bots)
 		ABSpawnManager.Update(deltaTime);
 		
-		// Log de status periodico
 		if (m_StatusLogTimer >= m_StatusLogInterval)
 		{
 			m_StatusLogTimer = 0;

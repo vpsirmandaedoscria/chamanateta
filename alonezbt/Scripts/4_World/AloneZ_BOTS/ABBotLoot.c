@@ -23,11 +23,11 @@ class ABBotLoot
 		botEntity.GetInventory().CreateInInventory("BaseballCap_Blue");
 		
 		if (difficulty == "Easy")
-			AddWeaponWithAmmo(botEntity, "MakarovIJ70", "Mag_IJ70_8Rnd", "Ammo_380", 8);
+			AddWeaponToHands(botEntity, "MakarovIJ70", "Mag_IJ70_8Rnd", 8);
 		else if (difficulty == "Medium")
-			AddWeaponWithAmmo(botEntity, "CZ75", "Mag_CZ75_15Rnd", "Ammo_9x19", 15);
+			AddWeaponToHands(botEntity, "CZ75", "Mag_CZ75_15Rnd", 15);
 		else
-			AddWeaponWithAmmo(botEntity, "FNX45", "Mag_FNX45_15Rnd", "Ammo_45ACP", 15);
+			AddWeaponToHands(botEntity, "FNX45", "Mag_FNX45_15Rnd", 15);
 	}
 	
 	static void EquipMilitary(PlayerBase botEntity, string difficulty)
@@ -39,16 +39,16 @@ class ABBotLoot
 		
 		if (difficulty == "Easy")
 		{
-			AddWeaponWithAmmo(botEntity, "SKS", "", "Ammo_762x39", 10);
+			AddWeaponToHands(botEntity, "SKS", "", 10);
 		}
 		else if (difficulty == "Medium")
 		{
-			AddWeaponWithAmmo(botEntity, "AKM", "Mag_AKM_30Rnd", "Ammo_762x39", 30);
+			AddWeaponToHands(botEntity, "AKM", "Mag_AKM_30Rnd", 30);
 			botEntity.GetInventory().CreateInInventory("PlateCarrierVest");
 		}
 		else
 		{
-			AddWeaponWithAmmo(botEntity, "M4A1", "Mag_M4A1_30Rnd", "Ammo_556x45", 30);
+			AddWeaponToHands(botEntity, "M4A1", "Mag_M4A1_30Rnd", 30);
 			botEntity.GetInventory().CreateInInventory("PlateCarrierVest");
 			botEntity.GetInventory().CreateInInventory("MilitaryBeret_Red");
 		}
@@ -64,16 +64,16 @@ class ABBotLoot
 		botEntity.GetInventory().CreateInInventory("TacticalGloves_Black");
 		
 		if (difficulty == "Easy")
-			AddWeaponWithAmmo(botEntity, "AKM", "Mag_AKM_30Rnd", "Ammo_762x39", 30);
+			AddWeaponToHands(botEntity, "AKM", "Mag_AKM_30Rnd", 30);
 		else if (difficulty == "Medium")
-			AddWeaponWithAmmo(botEntity, "M4A1", "Mag_M4A1_30Rnd", "Ammo_556x45", 30);
+			AddWeaponToHands(botEntity, "M4A1", "Mag_M4A1_30Rnd", 30);
 		else
 		{
 			float roll = Math.RandomFloat01();
 			if (roll < 0.3)
-				AddWeaponWithAmmo(botEntity, "SVD", "Mag_SVD_10Rnd", "Ammo_762x54", 10);
+				AddWeaponToHands(botEntity, "SVD", "Mag_SVD_10Rnd", 10);
 			else
-				AddWeaponWithAmmo(botEntity, "M4A1", "Mag_M4A1_30Rnd", "Ammo_556x45", 30);
+				AddWeaponToHands(botEntity, "M4A1", "Mag_M4A1_30Rnd", 30);
 		}
 	}
 	
@@ -91,29 +91,39 @@ class ABBotLoot
 		botEntity.GetInventory().CreateInInventory(knifeType);
 	}
 	
-	static void AddWeaponWithAmmo(PlayerBase botEntity, string weaponClass, string magClass, string ammoClass, int ammoCount)
+	static void AddWeaponToHands(PlayerBase botEntity, string weaponClass, string magClass, int ammoCount)
 	{
 		if (!botEntity)
 			return;
 		
-		EntityAI weapon = botEntity.GetInventory().CreateInInventory(weaponClass);
+		EntityAI weapon = botEntity.GetHumanInventory().CreateInHands(weaponClass);
 		if (!weapon)
-			return;
+		{
+			weapon = botEntity.GetInventory().CreateInInventory(weaponClass);
+			if (!weapon)
+				return;
+		}
 		
 		if (magClass != "")
 		{
-			EntityAI mag = weapon.GetInventory().CreateInInventory(magClass);
+			EntityAI mag = weapon.GetInventory().CreateAttachment(magClass);
+			if (!mag)
+				mag = weapon.GetInventory().CreateInInventory(magClass);
+			
 			Magazine magazine = Magazine.Cast(mag);
 			if (magazine)
 				magazine.ServerSetAmmoCount(ammoCount);
 		}
 		
-		EntityAI extraAmmo = botEntity.GetInventory().CreateInInventory(ammoClass);
-		if (extraAmmo)
+		Weapon_Base wpn = Weapon_Base.Cast(weapon);
+		if (wpn)
 		{
-			Magazine extraMag = Magazine.Cast(extraAmmo);
-			if (extraMag)
-				extraMag.ServerSetAmmoCount(ammoCount * 2);
+			int mi = wpn.GetCurrentMuzzle();
+			if (wpn.IsChamberEmpty(mi))
+			{
+				if (magClass != "")
+					wpn.SpawnCartridgeToInternalMagazine(mi, "Bullet_762x39");
+			}
 		}
 	}
 	
@@ -141,9 +151,9 @@ class ABBotLoot
 			EntityAI item = EntityAI.Cast(GetGame().CreateObjectEx(lootItem.ClassName, dropPos, ECE_PLACE_ON_SURFACE));
 			if (item)
 			{
-				Magazine mag = Magazine.Cast(item);
-				if (mag)
-					mag.ServerSetAmmoCount(qty);
+				Magazine dropMag = Magazine.Cast(item);
+				if (dropMag)
+					dropMag.ServerSetAmmoCount(qty);
 				
 				ABLogger.LogLoot("DeathDrop", lootItem.ClassName, qty);
 			}

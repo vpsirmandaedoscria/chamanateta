@@ -1,6 +1,3 @@
-// AloneZ BOTS - Combat System
-// Combate ranged (disparo) e melee (faca)
-
 class ABBotCombat
 {
 	protected ABBot m_Bot;
@@ -18,8 +15,6 @@ class ABBotCombat
 		m_ShotsHit = 0;
 	}
 	
-	// --- RANGED COMBAT ---
-	
 	void FireAtTarget(PlayerBase target)
 	{
 		if (!m_Bot || !m_Bot.IsAlive() || !target || !target.IsAlive())
@@ -35,11 +30,9 @@ class ABBotCombat
 		
 		m_ShotsFired++;
 		
-		// Calcular precisao
 		float accuracy = Math.RandomFloat(diff.AccuracyMin, diff.AccuracyMax);
 		float distanceToTarget = m_Bot.DistanceToTarget();
 		
-		// Precisao diminui com a distancia
 		float distancePenalty = 0;
 		if (distanceToTarget > 50.0)
 			distancePenalty = (distanceToTarget - 50.0) / 200.0;
@@ -48,19 +41,16 @@ class ABBotCombat
 		
 		bool hit = Math.RandomFloat01() <= accuracy;
 		
-		// Calcular direcao do tiro
 		vector botPos = m_Bot.GetPosition() + Vector(0, 1.5, 0);
 		vector targetPos = target.GetPosition() + Vector(0, 1.0, 0);
 		vector direction = (targetPos - botPos).Normalized();
 		
-		// Aplicar spread (dispersao)
 		float spreadRad = diff.AimSpread * Math.DEG2RAD;
 		direction[0] = direction[0] + Math.RandomFloat(-spreadRad, spreadRad);
 		direction[1] = direction[1] + Math.RandomFloat(-spreadRad * 0.5, spreadRad * 0.5);
 		direction[2] = direction[2] + Math.RandomFloat(-spreadRad, spreadRad);
 		direction.Normalize();
 		
-		// Aplicar dano se acertou
 		float damage = 0;
 		
 		if (hit)
@@ -70,6 +60,8 @@ class ABBotCombat
 			ApplyDamageToPlayer(target, damage);
 		}
 		
+		TryFireWeapon(botEntity);
+		
 		string targetName = "Unknown";
 		if (target.GetIdentity())
 			targetName = target.GetIdentity().GetName();
@@ -78,25 +70,50 @@ class ABBotCombat
 		{
 			ABLogger.LogCombatShot(m_Bot.GetName(), targetName, hit, damage);
 		}
+	}
+	
+	protected void TryFireWeapon(PlayerBase botEntity)
+	{
+		if (!botEntity)
+			return;
 		
-		// Efeito sonoro do tiro (via animacao do bot)
-		PlayShootAnimation(botEntity);
+		Weapon_Base weapon = Weapon_Base.Cast(botEntity.GetItemInHands());
+		if (weapon)
+		{
+			int mi = weapon.GetCurrentMuzzle();
+			if (weapon.IsChamberFull(mi))
+			{
+				weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
+			}
+			else
+			{
+				Magazine mag = Magazine.Cast(weapon.GetAttachedMagazine());
+				if (mag && mag.GetAmmoCount() > 0)
+				{
+					weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
+				}
+			}
+		}
+		
+		HumanCommandMove moveCmd = botEntity.GetCommand_Move();
+		if (moveCmd)
+		{
+			moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
+		}
 	}
 	
 	protected float CalculateRangedDamage(ABDifficultyConfig diff, float distance)
 	{
 		float baseDamage = 25.0;
 		
-		// Dano diminui com distancia
 		float distFactor = 1.0;
 		if (distance > 30.0)
 			distFactor = Math.Clamp(1.0 - ((distance - 30.0) / 150.0), 0.3, 1.0);
 		
 		float finalDamage = baseDamage * diff.DamageMultiplier * distFactor;
 		
-		// Hit zones aleatorias afetam o dano
 		float hitZoneMultiplier = GetRandomHitZoneMultiplier();
-		finalDamage *= hitZoneMultiplier;
+		finalDamage = finalDamage * hitZoneMultiplier;
 		
 		return finalDamage;
 	}
@@ -105,13 +122,13 @@ class ABBotCombat
 	{
 		float roll = Math.RandomFloat01();
 		
-		if (roll < 0.05)      // 5% chance headshot
+		if (roll < 0.05)
 			return 4.0;
-		else if (roll < 0.35) // 30% chance torso
+		else if (roll < 0.35)
 			return 1.0;
-		else if (roll < 0.65) // 30% chance arms
+		else if (roll < 0.65)
 			return 0.6;
-		else                  // 35% chance legs
+		else
 			return 0.5;
 	}
 	
@@ -120,9 +137,7 @@ class ABBotCombat
 		if (!target || !target.IsAlive())
 			return;
 		
-		// Selecionar zona de dano aleatoria
 		string damageZone = GetRandomDamageZone();
-		
 		target.ProcessDirectDamage(DT_CUSTOM, m_Bot.GetEntity(), damageZone, "Bullet_556x45", "0 0 0", damage);
 	}
 	
@@ -143,22 +158,6 @@ class ABBotCombat
 		else
 			return "RightLeg";
 	}
-	
-	protected void PlayShootAnimation(PlayerBase botEntity)
-	{
-		if (!botEntity)
-			return;
-		
-		// Forcar animacao de tiro no bot
-		HumanCommandMove moveCmd = botEntity.GetCommand_Move();
-		if (moveCmd)
-		{
-			// Bot fica ereto ao atirar
-			moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
-		}
-	}
-	
-	// --- MELEE COMBAT (FACA) ---
 	
 	void MeleeAttack(PlayerBase target)
 	{
@@ -185,7 +184,6 @@ class ABBotCombat
 		if (dist > meleeRange)
 			return;
 		
-		// Calcular hit/miss com base na precisao + brutalidade
 		float hitChance = Math.Clamp(diff.AccuracyMax + (diff.Brutality * 0.2), 0.0, 1.0);
 		bool hit = Math.RandomFloat01() <= hitChance;
 		
@@ -194,8 +192,6 @@ class ABBotCombat
 		if (hit)
 		{
 			damage = diff.MeleeDamage;
-			
-			// Aplicar dano melee
 			string meleeZone = GetRandomDamageZone();
 			target.ProcessDirectDamage(DT_CUSTOM, m_Bot.GetEntity(), meleeZone, "MeleeFist", "0 0 0", damage);
 		}
@@ -208,24 +204,7 @@ class ABBotCombat
 		{
 			ABLogger.LogCombatMelee(m_Bot.GetName(), targetName, hit, damage);
 		}
-		
-		// Animacao de ataque melee
-		PlayMeleeAnimation(m_Bot.GetEntity());
 	}
-	
-	protected void PlayMeleeAnimation(PlayerBase botEntity)
-	{
-		if (!botEntity)
-			return;
-		
-		HumanCommandMove moveCmd = botEntity.GetCommand_Move();
-		if (moveCmd)
-		{
-			moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
-		}
-	}
-	
-	// --- Stats ---
 	
 	int GetShotsFired()
 	{

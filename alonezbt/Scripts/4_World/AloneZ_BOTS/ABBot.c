@@ -100,7 +100,6 @@ class ABBot
 		
 		m_TimeSinceLastUpdate = 0;
 		
-		// Log posicao periodicamente
 		float posLogInterval = 30.0;
 		if (ABConfig.s_Settings)
 			posLogInterval = ABConfig.s_Settings.PositionLogInterval;
@@ -114,12 +113,9 @@ class ABBot
 			}
 		}
 		
-		// Atualizar brain (logica principal)
 		if (m_Brain)
 			m_Brain.Think(deltaTime);
 	}
-	
-	// --- State Management ---
 	
 	void SetState(ABBotState newState)
 	{
@@ -154,8 +150,6 @@ class ABBot
 		}
 		return "UNKNOWN";
 	}
-	
-	// --- Getters ---
 	
 	PlayerBase GetEntity()
 	{
@@ -239,8 +233,6 @@ class ABBot
 		return m_MaxHealth;
 	}
 	
-	// --- Target Management ---
-	
 	void SetTarget(PlayerBase target)
 	{
 		m_CurrentTarget = target;
@@ -256,8 +248,6 @@ class ABBot
 		m_CurrentTarget = null;
 	}
 	
-	// --- Damage ---
-	
 	void TakeDamage(float damage, string source)
 	{
 		if (!m_IsAlive)
@@ -267,7 +257,7 @@ class ABBot
 		if (m_DiffConfig)
 			actualDamage = damage * m_DiffConfig.DamageReceivedMultiplier;
 		
-		m_Health -= actualDamage;
+		m_Health = m_Health - actualDamage;
 		
 		ABLogger.Log("INFO", "DAMAGE", "Bot '" + m_Name + "' recebeu " + actualDamage.ToString() + " de dano de '" + source + "' | HP: " + m_Health.ToString() + "/" + m_MaxHealth.ToString());
 		
@@ -287,10 +277,8 @@ class ABBot
 		
 		ABLogger.LogDeath(m_Name, killerName, GetPosition());
 		
-		// Drop loot
 		DropLoot();
 		
-		// Notify group
 		if (m_Group)
 			m_Group.OnBotDied(this);
 	}
@@ -329,9 +317,7 @@ class ABBot
 		}
 	}
 	
-	// --- Movement Helpers ---
-	
-	void MoveTo(vector targetPos, float speedMultiplier = 1.0)
+	void MoveTo(vector targetPos, float speedMultiplier)
 	{
 		if (!m_BotEntity || !m_IsAlive)
 			return;
@@ -366,16 +352,16 @@ class ABBot
 		
 		m_BotEntity.SetPosition(newPos);
 		
+		vector velocity = direction * speed;
+		velocity[1] = 0;
+		SetVelocity(m_BotEntity, velocity);
+		
 		HumanCommandMove moveCmd = m_BotEntity.GetCommand_Move();
 		if (moveCmd)
 		{
 			if (speedMultiplier < 0.5)
 			{
 				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_CROUCH);
-			}
-			else if (speedMultiplier > 1.0)
-			{
-				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
 			}
 			else
 			{

@@ -1,6 +1,3 @@
-// AloneZ BOTS - Bot Brain / AI Logic Controller
-// Controla a logica de decisao do bot (FSM simplificado)
-
 class ABBotBrain
 {
 	protected ABBot m_Bot;
@@ -63,12 +60,10 @@ class ABBotBrain
 		}
 	}
 	
-	// --- IDLE ---
 	protected void ThinkIdle(float deltaTime)
 	{
 		m_IdleTimer += deltaTime;
 		
-		// Verificar se ha player por perto
 		PlayerBase detectedPlayer = m_Bot.GetDetection().ScanForPlayers();
 		if (detectedPlayer)
 		{
@@ -77,7 +72,6 @@ class ABBotBrain
 			return;
 		}
 		
-		// Apos 2 segundos idle, iniciar patrulha
 		if (m_IdleTimer >= 2.0)
 		{
 			ABBotPatrol patrol = m_Bot.GetPatrol();
@@ -89,10 +83,8 @@ class ABBotBrain
 		}
 	}
 	
-	// --- PATROLLING ---
 	protected void ThinkPatrol(float deltaTime)
 	{
-		// Verificar deteccao de player
 		PlayerBase detectedPlayer = m_Bot.GetDetection().ScanForPlayers();
 		if (detectedPlayer)
 		{
@@ -101,7 +93,6 @@ class ABBotBrain
 			return;
 		}
 		
-		// Continuar patrulha
 		ABBotPatrol patrol = m_Bot.GetPatrol();
 		if (patrol)
 		{
@@ -109,7 +100,6 @@ class ABBotBrain
 		}
 	}
 	
-	// --- DETECTING (player encontrado, preparando acao) ---
 	protected void ThinkDetecting(float deltaTime)
 	{
 		PlayerBase target = m_Bot.GetTarget();
@@ -129,7 +119,6 @@ class ABBotBrain
 			return;
 		}
 		
-		// Tempo de reacao baseado na dificuldade
 		m_ReactionTimer += deltaTime;
 		
 		if (!m_HasReacted && m_ReactionTimer >= diff.ReactionTime)
@@ -139,7 +128,6 @@ class ABBotBrain
 			
 			float dist = m_Bot.DistanceToTarget();
 			
-			// Decidir modo: furtivo ou combate direto
 			if (dist > diff.StealthDistance)
 			{
 				m_Bot.SetState(ABBotState.STEALTH);
@@ -167,7 +155,6 @@ class ABBotBrain
 		}
 	}
 	
-	// --- STEALTH (aproximacao furtiva) ---
 	protected void ThinkStealth(float deltaTime)
 	{
 		m_StealthTimer += deltaTime;
@@ -184,7 +171,6 @@ class ABBotBrain
 		float dist = m_Bot.DistanceToTarget();
 		ABDifficultyConfig diff = m_Bot.GetDifficultyConfig();
 		
-		// Se perdeu visao (muito longe), voltar a patrulhar
 		float maxDetection = 100.0;
 		if (diff)
 			maxDetection = diff.DetectionRadius;
@@ -205,7 +191,6 @@ class ABBotBrain
 		if (ABConfig.s_Settings)
 			meleeDist = ABConfig.s_Settings.MeleeEngageDistance;
 		
-		// Chegou perto o suficiente para combate
 		if (dist <= meleeDist && diff && Math.RandomFloat01() < diff.MeleeChance)
 		{
 			m_Bot.SetState(ABBotState.COMBAT_MELEE);
@@ -228,7 +213,6 @@ class ABBotBrain
 			return;
 		}
 		
-		// Mover furtivamente em direcao ao alvo
 		float stealthSpeed = 0.5;
 		if (diff)
 			stealthSpeed = diff.StealthSpeedMultiplier;
@@ -237,7 +221,6 @@ class ABBotBrain
 		m_Bot.LookAt(target.GetPosition());
 	}
 	
-	// --- COMBAT RANGED ---
 	protected void ThinkCombatRanged(float deltaTime)
 	{
 		m_CombatTimer += deltaTime;
@@ -258,14 +241,12 @@ class ABBotBrain
 		float dist = m_Bot.DistanceToTarget();
 		ABDifficultyConfig diff = m_Bot.GetDifficultyConfig();
 		
-		// Perdeu o alvo (muito longe)
 		float maxDetection = 100.0;
 		if (diff)
 			maxDetection = diff.DetectionRadius;
 		
 		if (dist > maxDetection * 1.2)
 		{
-			// Verificar brutalidade - chance de perseguir
 			if (diff && Math.RandomFloat01() < diff.Brutality)
 			{
 				m_Bot.SetState(ABBotState.STEALTH);
@@ -283,17 +264,14 @@ class ABBotBrain
 		if (ABConfig.s_Settings)
 			meleeDist = ABConfig.s_Settings.MeleeEngageDistance;
 		
-		// Trocar para melee se estiver muito perto
 		if (dist <= meleeDist && diff && Math.RandomFloat01() < diff.MeleeChance)
 		{
 			m_Bot.SetState(ABBotState.COMBAT_MELEE);
 			return;
 		}
 		
-		// Olhar para o alvo
 		m_Bot.LookAt(target.GetPosition());
 		
-		// Atirar
 		float fireInterval = 1.0;
 		if (diff)
 			fireInterval = 1.0 / diff.FireRate;
@@ -304,13 +282,11 @@ class ABBotBrain
 			m_Bot.GetCombat().FireAtTarget(target);
 		}
 		
-		// Dodge (esquiva)
 		if (diff && Math.RandomFloat01() < diff.DodgeChance * deltaTime)
 		{
 			DoDodge();
 		}
 		
-		// Movimentacao em combate - aproximar lentamente
 		if (dist > 15.0)
 		{
 			float moveSpeed = 0.8;
@@ -320,7 +296,6 @@ class ABBotBrain
 		}
 	}
 	
-	// --- COMBAT MELEE ---
 	protected void ThinkCombatMelee(float deltaTime)
 	{
 		m_CombatTimer += deltaTime;
@@ -340,7 +315,6 @@ class ABBotBrain
 		float dist = m_Bot.DistanceToTarget();
 		ABDifficultyConfig diff = m_Bot.GetDifficultyConfig();
 		
-		// Se o alvo fugiu, voltar para ranged
 		float meleeDist = 3.0;
 		if (ABConfig.s_Settings)
 			meleeDist = ABConfig.s_Settings.MeleeEngageDistance;
@@ -351,15 +325,11 @@ class ABBotBrain
 			return;
 		}
 		
-		// Olhar e mover para o alvo
 		m_Bot.LookAt(target.GetPosition());
 		m_Bot.MoveTo(target.GetPosition(), 1.2);
 		
-		// Atacar corpo a corpo
 		m_Bot.GetCombat().MeleeAttack(target);
 	}
-	
-	// --- Helpers ---
 	
 	protected void OnPlayerDetected(PlayerBase player)
 	{
@@ -378,7 +348,6 @@ class ABBotBrain
 		m_HasReacted = false;
 		m_ReactionTimer = 0;
 		
-		// Alertar grupo
 		ABBotGroup group = m_Bot.GetGroup();
 		if (group)
 			group.AlertGroup(player, m_Bot);
