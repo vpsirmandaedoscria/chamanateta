@@ -31,7 +31,7 @@ class AloneZLog
         return hr.ToStringLen(2) + ":" + mn.ToStringLen(2) + ":" + sc.ToStringLen(2);
     }
 
-    static void WriteUpLog(string playerName, string steamId, string category, int newLevel, int coinsReceived)
+    static void WriteUpLog(string playerName, string steamId, string category, int newLevel, int coinsReceived, int totalReward)
     {
         EnsureLogDir();
         string dateStr = DateStr();
@@ -45,13 +45,13 @@ class AloneZLog
             lvlMsg.Replace("{category}", category);
             string rwdMsg = s.RewardMessage;
             rwdMsg.Replace("{coins}", coinsReceived.ToString());
-            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + lvlMsg + " " + rwdMsg;
+            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + lvlMsg + " " + rwdMsg + " totalizando " + totalReward.ToString() + " ganhos";
             FPrintln(f, line);
             CloseFile(f);
         }
     }
 
-    static void WriteHourLog(string playerName, string steamId, int totalHours, int coinsReceived)
+    static void WriteHourLog(string playerName, string steamId, int totalHours, int coinsReceived, int totalReward)
     {
         EnsureLogDir();
         string dateStr = DateStr();
@@ -63,7 +63,7 @@ class AloneZLog
             string hrMsg = s.HourlyMessage;
             hrMsg.Replace("{hours}", totalHours.ToString());
             hrMsg.Replace("{coins}", coinsReceived.ToString());
-            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + hrMsg;
+            string line = "[" + dateStr + " " + TimeStr() + "] " + playerName + " (" + steamId + ") " + hrMsg + " totalizando " + totalReward.ToString() + " ganhos";
             FPrintln(f, line);
             CloseFile(f);
         }
@@ -256,7 +256,7 @@ class AloneZProgressSrv
                 stage += 1;
 
                 string pName = pb.GetIdentity().GetName();
-                AloneZLog.WriteUpLog(pName, uid, CategoryName(cat), stage, coins);
+                AloneZLog.WriteUpLog(pName, uid, CategoryName(cat), stage, coins, d.RewardCount);
                 SendLevelUpMessage(pb, CategoryName(cat), stage);
 
                 if (stage >= maxStage)
@@ -302,7 +302,7 @@ class AloneZProgressSrv
         SendMsg(pb, msg);
 
         string pName = pb.GetIdentity().GetName();
-        AloneZLog.WriteHourLog(pName, uid, d.TotalHours, hourlyCoins);
+        AloneZLog.WriteHourLog(pName, uid, d.TotalHours, hourlyCoins, d.RewardCount);
 
         AloneZPlayerDB.Save(uid, d);
         SyncAll(pb, uid, d);
@@ -357,7 +357,7 @@ class AloneZProgressSrv
             }
             stage += 1;
             string pName = pb.GetIdentity().GetName();
-            AloneZLog.WriteUpLog(pName, uid, objName, stage, coins);
+            AloneZLog.WriteUpLog(pName, uid, objName, stage, coins, d.RewardCount);
             SendLevelUpMessage(pb, objName, stage);
         }
 
