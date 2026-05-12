@@ -198,6 +198,11 @@ class ABBot
 		return m_Brain;
 	}
 	
+	ABBotMoveCommand GetMoveCommand()
+	{
+		return m_MoveCommand;
+	}
+	
 	ABBotGroup GetGroup()
 	{
 		return m_Group;
@@ -336,6 +341,27 @@ class ABBot
 		}
 		
 		direction.Normalize();
+		
+		vector rayStart = currentPos + Vector(0, 0.5, 0);
+		vector rayEnd = rayStart + direction * 2.0;
+		vector hitPos;
+		vector hitNormal;
+		int contactComponent;
+		Object hitObject;
+		
+		if (DayZPhysics.RaycastRV(rayStart, rayEnd, hitPos, hitNormal, contactComponent, null, null, m_BotEntity))
+		{
+			vector avoidDir;
+			float crossY = direction[0] * hitNormal[2] - direction[2] * hitNormal[0];
+			if (crossY >= 0)
+				avoidDir = Vector(-direction[2], 0, direction[0]);
+			else
+				avoidDir = Vector(direction[2], 0, -direction[0]);
+			
+			direction = direction + avoidDir * 1.5;
+			direction[1] = 0;
+			direction.Normalize();
+		}
 		
 		float yaw = direction.VectorToAngles()[0];
 		m_BotEntity.SetOrientation(Vector(yaw, 0, 0));

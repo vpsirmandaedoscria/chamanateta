@@ -233,10 +233,14 @@ class ABBotBrain
 			m_Bot.SetState(ABBotState.PATROLLING);
 			m_CombatTimer = 0;
 			m_IsInCombat = false;
+			m_Bot.GetCombat().LowerWeapon(m_Bot.GetEntity());
 			return;
 		}
 		
 		m_IsInCombat = true;
+		
+		if (!m_Bot.GetCombat().IsWeaponRaised())
+			m_Bot.GetCombat().RaiseWeapon(m_Bot.GetEntity());
 		
 		float dist = m_Bot.DistanceToTarget();
 		ABDifficultyConfig diff = m_Bot.GetDifficultyConfig();
@@ -257,6 +261,7 @@ class ABBotBrain
 			m_Bot.SetState(ABBotState.PATROLLING);
 			m_CombatTimer = 0;
 			m_IsInCombat = false;
+			m_Bot.GetCombat().LowerWeapon(m_Bot.GetEntity());
 			return;
 		}
 		

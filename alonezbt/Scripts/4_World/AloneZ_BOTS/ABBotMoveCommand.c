@@ -5,6 +5,7 @@ class ABBotMoveCommand
 	protected float m_MovementAngle;
 	protected bool m_Active;
 	protected bool m_TimerStarted;
+	protected bool m_WeaponRaised;
 	
 	void ABBotMoveCommand(PlayerBase entity)
 	{
@@ -13,6 +14,7 @@ class ABBotMoveCommand
 		m_MovementAngle = 0;
 		m_Active = false;
 		m_TimerStarted = false;
+		m_WeaponRaised = false;
 	}
 	
 	void ~ABBotMoveCommand()
@@ -69,25 +71,45 @@ class ABBotMoveCommand
 		return m_Active;
 	}
 	
+	void SetWeaponRaised(bool raised)
+	{
+		m_WeaponRaised = raised;
+		if (raised && !m_TimerStarted)
+			StartTimer();
+	}
+	
+	bool IsWeaponRaised()
+	{
+		return m_WeaponRaised;
+	}
+	
 	void OnFrame()
 	{
-		if (!m_Entity || !m_Active)
+		if (!m_Entity)
+			return;
+		
+		if (!m_Active && !m_WeaponRaised)
 			return;
 		
 		HumanInputController hic = m_Entity.GetInputController();
 		if (!hic)
 			return;
 		
-		hic.OverrideMovementSpeed(true, m_TargetSpeed);
-		hic.OverrideMovementAngle(true, m_MovementAngle);
+		if (m_Active)
+		{
+			hic.OverrideMovementSpeed(true, m_TargetSpeed);
+			hic.OverrideMovementAngle(true, m_MovementAngle);
+		}
+		
+		if (m_WeaponRaised)
+		{
+			hic.OverrideRaise(true, true);
+		}
 		
 		HumanCommandMove moveCmd = m_Entity.GetCommand_Move();
 		if (moveCmd)
 		{
-			if (m_TargetSpeed <= 1.0)
-				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
-			else
-				moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
+			moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
 		}
 	}
 };

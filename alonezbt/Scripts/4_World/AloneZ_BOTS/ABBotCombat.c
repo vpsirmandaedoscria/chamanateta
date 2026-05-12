@@ -24,12 +24,10 @@ class ABBotCombat
 		if (!botEntity)
 			return;
 		
-		HumanInputController hic = botEntity.GetInputController();
-		if (hic)
-		{
-			hic.OverrideRaise(true, true);
-			m_WeaponRaised = true;
-		}
+		m_WeaponRaised = true;
+		ABBotMoveCommand moveCmd = m_Bot.GetMoveCommand();
+		if (moveCmd)
+			moveCmd.SetWeaponRaised(true);
 	}
 	
 	void LowerWeapon(PlayerBase botEntity)
@@ -37,12 +35,15 @@ class ABBotCombat
 		if (!botEntity)
 			return;
 		
-		HumanInputController hic = botEntity.GetInputController();
-		if (hic)
-		{
-			hic.OverrideRaise(true, false);
-			m_WeaponRaised = false;
-		}
+		m_WeaponRaised = false;
+		ABBotMoveCommand moveCmd = m_Bot.GetMoveCommand();
+		if (moveCmd)
+			moveCmd.SetWeaponRaised(false);
+	}
+	
+	bool IsWeaponRaised()
+	{
+		return m_WeaponRaised;
 	}
 	
 	void FireAtTarget(PlayerBase target)
@@ -174,27 +175,45 @@ class ABBotCombat
 		if (mag && mag.GetAmmoCount() > 0)
 			return;
 		
-		Magazine spareMag = null;
-		EntityAI attachment;
-		int attCount = botEntity.GetInventory().GetAttachmentSlotsCount();
-		for (int i = 0; i < attCount; i++)
-		{
-			EntityAI att = botEntity.GetInventory().FindAttachment(i);
-			if (!att)
-				continue;
-			
-			Magazine testMag = Magazine.Cast(att);
-			if (testMag && testMag.GetAmmoCount() > 0 && weapon.CanChamberFromMag(mi, testMag))
-			{
-				spareMag = testMag;
-				break;
-			}
-		}
+		Magazine spareMag = FindSpareMagazine(botEntity, weapon, mi);
 		
 		if (spareMag && wm.CanAttachMagazine(weapon, spareMag))
 		{
 			wm.AttachMagazine(spareMag);
 		}
+	}
+	
+	protected Magazine FindSpareMagazine(PlayerBase botEntity, Weapon_Base weapon, int mi)
+	{
+		int attCount = botEntity.GetInventory().AttachmentCount();
+		for (int i = 0; i < attCount; i++)
+		{
+			EntityAI att = botEntity.GetInventory().GetAttachmentFromIndex(i);
+			if (!att)
+				continue;
+			
+			Magazine testMag = Magazine.Cast(att);
+			if (testMag && testMag.GetAmmoCount() > 0 && weapon.CanChamberFromMag(mi, testMag))
+				return testMag;
+			
+			CargoBase cargo = att.GetInventory().GetCargo();
+			if (cargo)
+			{
+				int cargoCount = cargo.GetItemCount();
+				for (int j = 0; j < cargoCount; j++)
+				{
+					EntityAI cargoItem = cargo.GetItem(j);
+					if (!cargoItem)
+						continue;
+					
+					Magazine cargoMag = Magazine.Cast(cargoItem);
+					if (cargoMag && cargoMag.GetAmmoCount() > 0 && weapon.CanChamberFromMag(mi, cargoMag))
+						return cargoMag;
+				}
+			}
+		}
+		
+		return null;
 	}
 	
 	protected float CalculateRangedDamage(ABDifficultyConfig diff, float distance)

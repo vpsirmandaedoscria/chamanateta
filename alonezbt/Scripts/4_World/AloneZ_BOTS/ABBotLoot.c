@@ -118,8 +118,20 @@ class ABBotLoot
 		Weapon_Base wpn = Weapon_Base.Cast(weapon);
 		if (wpn)
 		{
-			int mi = wpn.GetCurrentMuzzle();
-			if (wpn.IsChamberEmpty(mi))
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(DelayedChamber, 500, false, wpn, botEntity);
+		}
+	}
+	
+	static void DelayedChamber(Weapon_Base wpn, PlayerBase botEntity)
+	{
+		if (!wpn || !botEntity)
+			return;
+		
+		int mi = wpn.GetCurrentMuzzle();
+		if (wpn.IsChamberEmpty(mi))
+		{
+			Magazine mag = Magazine.Cast(wpn.GetMagazine(mi));
+			if (mag && mag.GetAmmoCount() > 0)
 			{
 				wpn.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
 			}
