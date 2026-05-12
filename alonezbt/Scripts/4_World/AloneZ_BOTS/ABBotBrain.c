@@ -136,21 +136,33 @@ class ABBotBrain
 					stealthTargetName = target.GetIdentity().GetName();
 				ABLogger.LogStealth(m_Bot.GetName(), stealthTargetName);
 			}
-			else if (dist <= ABConfig.s_Settings.MeleeEngageDistance && Math.RandomFloat01() < diff.MeleeChance)
-			{
-				m_Bot.SetState(ABBotState.COMBAT_MELEE);
-				string targetName1 = "Unknown";
-				if (target.GetIdentity())
-					targetName1 = target.GetIdentity().GetName();
-				ABLogger.LogCombatStart(m_Bot.GetName(), targetName1, "MELEE");
-			}
 			else
 			{
-				m_Bot.SetState(ABBotState.COMBAT_RANGED);
-				string targetName2 = "Unknown";
-				if (target.GetIdentity())
-					targetName2 = target.GetIdentity().GetName();
-				ABLogger.LogCombatStart(m_Bot.GetName(), targetName2, "RANGED");
+				bool hasGun = false;
+				PlayerBase detectEnt = m_Bot.GetEntity();
+				if (detectEnt)
+				{
+					Weapon_Base detectWpn = Weapon_Base.Cast(detectEnt.GetItemInHands());
+					if (detectWpn)
+						hasGun = true;
+				}
+				
+				if (!hasGun && dist <= ABConfig.s_Settings.MeleeEngageDistance)
+				{
+					m_Bot.SetState(ABBotState.COMBAT_MELEE);
+					string targetName1 = "Unknown";
+					if (target.GetIdentity())
+						targetName1 = target.GetIdentity().GetName();
+					ABLogger.LogCombatStart(m_Bot.GetName(), targetName1, "MELEE");
+				}
+				else
+				{
+					m_Bot.SetState(ABBotState.COMBAT_RANGED);
+					string targetName2 = "Unknown";
+					if (target.GetIdentity())
+						targetName2 = target.GetIdentity().GetName();
+					ABLogger.LogCombatStart(m_Bot.GetName(), targetName2, "RANGED");
+				}
 			}
 		}
 	}
@@ -191,18 +203,7 @@ class ABBotBrain
 		if (ABConfig.s_Settings)
 			meleeDist = ABConfig.s_Settings.MeleeEngageDistance;
 		
-		if (dist <= meleeDist && diff && Math.RandomFloat01() < diff.MeleeChance)
-		{
-			m_Bot.SetState(ABBotState.COMBAT_MELEE);
-			string tn1 = "Unknown";
-			if (target.GetIdentity())
-				tn1 = target.GetIdentity().GetName();
-			ABLogger.LogCombatStart(m_Bot.GetName(), tn1, "MELEE");
-			m_StealthTimer = 0;
-			return;
-		}
-		
-		if (dist <= combatDist)
+		if (dist <= combatDist || dist <= meleeDist)
 		{
 			m_Bot.SetState(ABBotState.COMBAT_RANGED);
 			string tn2 = "Unknown";
@@ -265,16 +266,6 @@ class ABBotBrain
 			return;
 		}
 		
-		float meleeDist = 3.0;
-		if (ABConfig.s_Settings)
-			meleeDist = ABConfig.s_Settings.MeleeEngageDistance;
-		
-		if (dist <= meleeDist && diff && Math.RandomFloat01() < diff.MeleeChance)
-		{
-			m_Bot.SetState(ABBotState.COMBAT_MELEE);
-			return;
-		}
-		
 		m_Bot.LookAt(target.GetPosition());
 		
 		float fireInterval = 1.0;
@@ -316,6 +307,17 @@ class ABBotBrain
 		}
 		
 		m_IsInCombat = true;
+		
+		PlayerBase meleeEnt = m_Bot.GetEntity();
+		if (meleeEnt)
+		{
+			Weapon_Base meleeWpn = Weapon_Base.Cast(meleeEnt.GetItemInHands());
+			if (meleeWpn)
+			{
+				m_Bot.SetState(ABBotState.COMBAT_RANGED);
+				return;
+			}
+		}
 		
 		float dist = m_Bot.DistanceToTarget();
 		ABDifficultyConfig diff = m_Bot.GetDifficultyConfig();

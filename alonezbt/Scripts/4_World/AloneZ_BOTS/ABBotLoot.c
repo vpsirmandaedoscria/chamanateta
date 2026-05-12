@@ -118,7 +118,7 @@ class ABBotLoot
 		Weapon_Base wpn = Weapon_Base.Cast(weapon);
 		if (wpn)
 		{
-			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(DelayedChamber, 500, false, wpn, botEntity);
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(DelayedChamber, 1500, false, wpn, botEntity);
 		}
 	}
 	
@@ -134,7 +134,20 @@ class ABBotLoot
 			if (mag && mag.GetAmmoCount() > 0)
 			{
 				wpn.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
+				GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(DelayedChamberRetry, 1000, false, wpn, botEntity);
 			}
+		}
+	}
+	
+	static void DelayedChamberRetry(Weapon_Base wpn, PlayerBase botEntity)
+	{
+		if (!wpn || !botEntity)
+			return;
+		
+		int mi = wpn.GetCurrentMuzzle();
+		if (wpn.IsChamberEmpty(mi))
+		{
+			wpn.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
 		}
 	}
 	

@@ -125,22 +125,47 @@ class ABBotCombat
 		
 		int mi = weapon.GetCurrentMuzzle();
 		
-		if (weapon.IsChamberFull(mi))
-		{
-			weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
-			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleAction, 300, false, botEntity);
-		}
-		else
+		if (weapon.IsChamberEmpty(mi))
 		{
 			Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
 			if (mag && mag.GetAmmoCount() > 0)
 			{
 				weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
+				GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(TryFireWeaponDelayed, 400, false, botEntity);
 			}
 			else
 			{
 				TryReload(botEntity, weapon);
 			}
+			return;
+		}
+		
+		if (weapon.IsChamberFiredOut(mi))
+		{
+			weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(TryFireWeaponDelayed, 400, false, botEntity);
+			return;
+		}
+		
+		weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
+		
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleAction, 300, false, botEntity);
+	}
+	
+	protected void TryFireWeaponDelayed(PlayerBase botEntity)
+	{
+		if (!botEntity)
+			return;
+		
+		Weapon_Base weapon = Weapon_Base.Cast(botEntity.GetItemInHands());
+		if (!weapon)
+			return;
+		
+		int mi = weapon.GetCurrentMuzzle();
+		if (weapon.IsChamberFull(mi) && !weapon.IsChamberFiredOut(mi))
+		{
+			weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleAction, 300, false, botEntity);
 		}
 	}
 	
