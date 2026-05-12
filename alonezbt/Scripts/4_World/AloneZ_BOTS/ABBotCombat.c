@@ -62,13 +62,8 @@ class ABBotCombat
 		if (!m_WeaponRaised)
 		{
 			RaiseWeapon(botEntity);
-			m_RaiseTimer = 0;
 			return;
 		}
-		
-		m_RaiseTimer += 1.0;
-		if (m_RaiseTimer < 0.5)
-			return;
 		
 		m_ShotsFired++;
 		
@@ -83,26 +78,16 @@ class ABBotCombat
 		
 		bool hit = Math.RandomFloat01() <= accuracy;
 		
-		vector botPos = m_Bot.GetPosition() + Vector(0, 1.5, 0);
-		vector targetPos = target.GetPosition() + Vector(0, 1.0, 0);
-		vector direction = (targetPos - botPos).Normalized();
-		
-		float spreadRad = diff.AimSpread * Math.DEG2RAD;
-		direction[0] = direction[0] + Math.RandomFloat(-spreadRad, spreadRad);
-		direction[1] = direction[1] + Math.RandomFloat(-spreadRad * 0.5, spreadRad * 0.5);
-		direction[2] = direction[2] + Math.RandomFloat(-spreadRad, spreadRad);
-		direction.Normalize();
-		
 		float damage = 0;
 		
 		if (hit)
 		{
 			m_ShotsHit++;
 			damage = CalculateRangedDamage(diff, distanceToTarget);
-			ApplyDamageToPlayer(target, damage);
+			ApplyDamageToPlayer(target, damage, botEntity);
 		}
 		
-		TryFireWeapon(botEntity);
+		TryConsumeAmmo(botEntity);
 		
 		string targetName = "Unknown";
 		if (target.GetIdentity())
@@ -114,7 +99,7 @@ class ABBotCombat
 		}
 	}
 	
-	protected void TryFireWeapon(PlayerBase botEntity)
+	protected void TryConsumeAmmo(PlayerBase botEntity)
 	{
 		if (!botEntity)
 			return;
@@ -124,49 +109,10 @@ class ABBotCombat
 			return;
 		
 		int mi = weapon.GetCurrentMuzzle();
-		
-		if (weapon.IsChamberEmpty(mi))
-		{
-			Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
-			if (mag && mag.GetAmmoCount() > 0)
-			{
-				weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
-				GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(TryFireWeaponDelayed, 400, false, botEntity);
-			}
-			else
-			{
-				TryReload(botEntity, weapon);
-			}
-			return;
-		}
-		
-		if (weapon.IsChamberFiredOut(mi))
-		{
-			weapon.ProcessWeaponEvent(new WeaponEventMechanism(botEntity));
-			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(TryFireWeaponDelayed, 400, false, botEntity);
-			return;
-		}
 		
 		weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
 		
 		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleAction, 300, false, botEntity);
-	}
-	
-	protected void TryFireWeaponDelayed(PlayerBase botEntity)
-	{
-		if (!botEntity)
-			return;
-		
-		Weapon_Base weapon = Weapon_Base.Cast(botEntity.GetItemInHands());
-		if (!weapon)
-			return;
-		
-		int mi = weapon.GetCurrentMuzzle();
-		if (weapon.IsChamberFull(mi) && !weapon.IsChamberFiredOut(mi))
-		{
-			weapon.ProcessWeaponEvent(new WeaponEventTrigger(botEntity));
-			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleAction, 300, false, botEntity);
-		}
 	}
 	
 	protected void CycleAction(PlayerBase botEntity)
@@ -271,13 +217,35 @@ class ABBotCombat
 			return 0.5;
 	}
 	
-	protected void ApplyDamageToPlayer(PlayerBase target, float damage)
+	protected void ApplyDamageToPlayer(PlayerBase target, float damage, PlayerBase botEntity)
 	{
 		if (!target || !target.IsAlive())
 			return;
 		
 		string damageZone = GetRandomDamageZone();
-		target.ProcessDirectDamage(DT_CUSTOM, m_Bot.GetEntity(), damageZone, "Bullet_556x45", "0 0 0", damage);
+		vector targetPos = target.GetPosition();
+		string ammoType = "Bullet_556x45";
+		
+		Weapon_Base weapon = Weapon_Base.Cast(botEntity.GetItemInHands());
+		if (weapon)
+		{
+			string weapAmmo;
+			float weapDamage;
+			int mi = weapon.GetCurrentMuzzle();
+			if (weapon.GetCartridgeInfo(mi, weapDamage, weapAmmo))
+			{
+				ammoType = weapAmmo;
+			}
+		}
+		
+		target.ProcessDirectDamage(DT_FIRE_ARM, botEntity, damageZone, ammoType, targetPos, damage);
+		
+		target.DecreaseHealth(damageZone, "Health", damage);
+		
+		float shockDamage = damage * 0.5;
+		if (damageZone == "Head")
+			shockDamage = damage * 2.0;
+		target.AddHealth("", "Shock", -shockDamage);
 	}
 	
 	protected string GetRandomDamageZone()
@@ -361,7 +329,9 @@ class ABBotCombat
 		{
 			damage = diff.MeleeDamage;
 			string meleeZone = GetRandomDamageZone();
-			target.ProcessDirectDamage(DT_CUSTOM, botEntity, meleeZone, "MeleeFist", "0 0 0", damage);
+			target.ProcessDirectDamage(DT_CLOSE_COMBAT, botEntity, meleeZone, "MeleeFist", targetPos, damage);
+			target.DecreaseHealth(meleeZone, "Health", damage);
+			target.AddHealth("", "Shock", -damage);
 		}
 		
 		string targetName = "Unknown";
