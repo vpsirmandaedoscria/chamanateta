@@ -9,6 +9,28 @@ class CfgPatches
     };
 };
 
+class CfgSoundShaders
+{
+    class AloneZ_Shot_SoundShader
+    {
+        samples[] = {{"DZ\sounds\weapons\firearms\AKM\AKM_close",1}};
+        volume = 1.0;
+        range = 200;
+        rangeCurve[] = {0,1,200,0};
+    };
+};
+
+class CfgSoundSets
+{
+    class AloneZ_Shot_SoundSet
+    {
+        soundShaders[] = {"AloneZ_Shot_SoundShader"};
+        volumeFactor = 1.0;
+        frequencyFactor = 1.0;
+        spatial = 1;
+    };
+};
+
 class CfgMods
 {
     class AloneZ_Bots

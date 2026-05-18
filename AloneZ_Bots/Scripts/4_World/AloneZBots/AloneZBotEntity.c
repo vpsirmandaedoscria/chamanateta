@@ -2,7 +2,7 @@
 // AloneZ Bots — Classe Principal do Bot (Controller/Wrapper)
 // Wraps a vanilla PlayerBase entity with bot AI behavior
 // Usa HumanInputController para movimento com animacao
-// Usa ProcessWeaponEvent para tiros reais com som
+// Tiro simulado: PlaySoundSet + ProcessDirectDamage (como BS_Patrol)
 // ============================================================================
 
 class AloneZBotEntity
@@ -320,7 +320,7 @@ class AloneZBotEntity
         }
     }
 
-    // --- Combate (sem ferrolhamento, somente tiro + dano direto) ---
+    // --- Combate (tiro simulado como o helicoptero: som + dano direto, sem sistema de arma) ---
 
     void BotFireWeapon(Object target, float accuracy, bool isHeadshot)
     {
@@ -334,28 +334,15 @@ class AloneZBotEntity
             return;
         }
 
-        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
-        if (!weapon)
-            return;
-
-        int mi = weapon.GetCurrentMuzzle();
-
-        // Municao infinita: recarrega magazine antes de cada tiro
-        RefillAmmo(weapon);
-
-        // Dispara usando comando de arma (animacao + som + muzzle flash)
-        HumanCommandWeapons hcw = m_Player.GetCommandModifier_Weapons();
-        if (hcw)
-        {
-            hcw.StartAction(WeaponActions.FIRE, 0);
-        }
+        // Efeito de tiro: som + muzzle flash (como o helicoptero faz)
+        PlayGunShotEffect();
 
         // Verifica hit baseado na accuracy
         float hitRoll = Math.RandomFloat01();
         if (hitRoll > accuracy)
             return;
 
-        // Acertou — aplica dano direto
+        // Acertou — aplica dano direto (ProcessDirectDamage como o helicoptero)
         PlayerBase hitPlayer = PlayerBase.Cast(target);
         if (!hitPlayer || !hitPlayer.IsAlive())
             return;
@@ -374,10 +361,15 @@ class AloneZBotEntity
         // Dano direto no jogador
         string damageZone = GetRandomDamageZone();
         string ammoType = "Bullet_556x45";
-        string weapAmmo;
-        float weapDamage;
-        if (weapon.GetCartridgeInfo(mi, weapDamage, weapAmmo))
-            ammoType = weapAmmo;
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (weapon)
+        {
+            int mi = weapon.GetCurrentMuzzle();
+            string weapAmmo;
+            float weapDamage;
+            if (weapon.GetCartridgeInfo(mi, weapDamage, weapAmmo))
+                ammoType = weapAmmo;
+        }
 
         hitPlayer.ProcessDirectDamage(DT_FIRE_ARM, m_Player, damageZone, ammoType, hitPlayer.GetPosition(), damage);
 
@@ -386,18 +378,29 @@ class AloneZBotEntity
         AloneZBotsLogger.LogInfo("COMBAT_HIT", hitMsg);
     }
 
-    // Recarrega municao da arma (municao infinita)
-    protected void RefillAmmo(Weapon_Base weapon)
+    // Efeito de tiro: som de arma + muzzle flash (mesmo sistema do helicoptero BS_Patrol)
+    void PlayGunShotEffect()
     {
-        if (!weapon || !m_Player)
+        if (!m_Player)
             return;
 
-        int mi = weapon.GetCurrentMuzzle();
-        Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
-        if (mag)
+        // Som do tiro (networked — todos os jogadores perto ouvem)
+        EffectSound shotSound;
+        m_Player.PlaySoundSet(shotSound, "AloneZ_Shot_SoundSet", 0, 0);
+        if (shotSound)
+            shotSound.SetSoundAutodestroy(true);
+
+        // Muzzle flash (particula visual)
+        vector muzzlePos = m_Player.GetPosition() + Vector(0, 1.5, 0);
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (weapon)
         {
-            mag.ServerSetAmmoCount(mag.GetAmmoMax());
+            vector weapPos = weapon.GetPosition();
+            if (weapPos != vector.Zero)
+                muzzlePos = weapPos;
         }
+
+        ParticleManager.GetInstance().PlayInWorld(ParticleList.GUN_FNX, muzzlePos);
     }
 
     // Retorna zona de dano aleatoria (cabeca, torso, bracos, pernas)
@@ -423,18 +426,9 @@ class AloneZBotEntity
     {
     }
 
-    // Prepara a arma ao spawnar (sem ferrolhamento)
+    // Prepara a arma ao spawnar (sem ferrolhamento, sem sistema de arma)
     void PrepareWeapon()
     {
-        if (!m_Player)
-            return;
-
-        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
-        if (!weapon)
-            return;
-
-        // Recarrega magazine
-        RefillAmmo(weapon);
         m_WeaponPrepared = true;
     }
 
