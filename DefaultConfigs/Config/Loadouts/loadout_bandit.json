@@ -1,0 +1,33 @@
+{
+    "LoadoutName": "loadout_bandit",
+    "Weapons": {
+        "Primary": {
+            "ClassName": "SKS",
+            "Attachments": [],
+            "Magazine": "Mag_SKS_10Rnd",
+            "MagazineCount": 4
+        },
+        "Secondary": {
+            "ClassName": "",
+            "Attachments": [],
+            "Magazine": "",
+            "MagazineCount": 0
+        },
+        "Melee": "KitchenKnife"
+    },
+    "Clothing": {
+        "Head": "BaseballCap_Black",
+        "Mask": "",
+        "Top": "Hoodie_Black",
+        "Vest": "",
+        "Gloves": "",
+        "Pants": "Jeans_Black",
+        "Shoes": "AthleticShoes_Black",
+        "Back": "TaloonBag_Green",
+        "Belt": ""
+    },
+    "Inventory": [
+        { "ClassName": "BandageDressing", "Quantity": 1 }
+    ],
+    "UnlimitedAmmo": 1
+}

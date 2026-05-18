@@ -1,0 +1,34 @@
+{
+    "LoadoutName": "loadout_civilian",
+    "Weapons": {
+        "Primary": {
+            "ClassName": "Izh18",
+            "Attachments": [],
+            "Magazine": "Ammo_762x39",
+            "MagazineCount": 3
+        },
+        "Secondary": {
+            "ClassName": "",
+            "Attachments": [],
+            "Magazine": "",
+            "MagazineCount": 0
+        },
+        "Melee": "Hatchet"
+    },
+    "Clothing": {
+        "Head": "",
+        "Mask": "",
+        "Top": "TShirt_White",
+        "Vest": "",
+        "Gloves": "",
+        "Pants": "Jeans_Blue",
+        "Shoes": "HikingBoots_Brown",
+        "Back": "DryBag_Blue",
+        "Belt": ""
+    },
+    "Inventory": [
+        { "ClassName": "BandageDressing", "Quantity": 1 },
+        { "ClassName": "Apple", "Quantity": 1 }
+    ],
+    "UnlimitedAmmo": 1
+}

@@ -1,0 +1,89 @@
+{
+    "RouteName": "Patrulha Cidade",
+    "RouteID": "route_city_patrol",
+    "Enabled": 1,
+    "BotCount": 2,
+    "Formation": "STAGGERED",
+    "FormationSpacing": 4.0,
+    "Faction": "Bandit",
+    "Loadout": "loadout_bandit",
+    "RespawnOnComplete": 1,
+    "LoopRoute": 1,
+    "WaypointBehavior": "ALTERNATE",
+    "DefaultSpeed": "WALK",
+    "DefaultStance": "ERECT",
+    "BotAccuracy": {
+        "MinAccuracy": 0.15,
+        "MaxAccuracy": 0.45,
+        "OverrideGlobal": 1
+    },
+    "BotHealth": {
+        "HealthMultiplier": 1.0,
+        "DamageReceivedMultiplier": 1.0,
+        "DamageDealtMultiplier": 1.0
+    },
+    "BotBehavior": {
+        "EngageOnSight": 1,
+        "FleeOnLowHealth": 1,
+        "FleeHealthThreshold": 30.0,
+        "CallReinforcements": 0,
+        "SearchAfterCombat": 0,
+        "SearchDurationSeconds": 15,
+        "ReturnToRouteAfterCombat": 1
+    },
+    "BotAppearance": {
+        "ClassNames": [
+            "SurvivorM_Mirek",
+            "SurvivorM_Oliver"
+        ],
+        "RandomizeAppearance": 0
+    },
+    "Waypoints": [
+        {
+            "Index": 0,
+            "Name": "Praca Central",
+            "Position": [3800.00, 320.00, 8500.00],
+            "WaitTime": 10.0,
+            "Speed": "WALK",
+            "Stance": "ERECT",
+            "LookDirection": [0.0, 0.0, 1.0],
+            "Action": "SCAN"
+        },
+        {
+            "Index": 1,
+            "Name": "Mercado",
+            "Position": [3850.00, 321.00, 8550.00],
+            "WaitTime": 8.0,
+            "Speed": "WALK",
+            "Stance": "ERECT",
+            "LookDirection": [1.0, 0.0, 0.0],
+            "Action": "NONE"
+        },
+        {
+            "Index": 2,
+            "Name": "Posto de Gasolina",
+            "Position": [3900.00, 319.00, 8520.00],
+            "WaitTime": 6.0,
+            "Speed": "JOG",
+            "Stance": "ERECT",
+            "LookDirection": [0.0, 0.0, -1.0],
+            "Action": "NONE"
+        },
+        {
+            "Index": 3,
+            "Name": "Igreja",
+            "Position": [3780.00, 322.00, 8480.00],
+            "WaitTime": 12.0,
+            "Speed": "WALK",
+            "Stance": "CROUCH",
+            "LookDirection": [-1.0, 0.0, 0.0],
+            "Action": "SCAN"
+        }
+    ],
+    "Schedule": {
+        "UseSchedule": 0,
+        "ActiveHoursStart": 6,
+        "ActiveHoursEnd": 22,
+        "DaysOfWeek": [1, 2, 3, 4, 5, 6, 7]
+    }
+}

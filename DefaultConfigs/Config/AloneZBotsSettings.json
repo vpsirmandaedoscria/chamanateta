@@ -1,0 +1,62 @@
+{
+    "ConfigVersion": 1,
+    "ModEnabled": 1,
+    "DebugMode": 0,
+    "BotLogLevel": 2,
+    "Global": {
+        "MaxBotsTotal": 50,
+        "BotDespawnDistance": 1000.0,
+        "BotRespawnEnabled": 1,
+        "BotRespawnDelaySeconds": 300,
+        "BotDefaultSpeed": "WALK",
+        "BotThreatSpeed": "SPRINT",
+        "BotDetectionRange": 150.0,
+        "BotEngageRange": 100.0,
+        "BotDisengageRange": 200.0,
+        "FriendlyFire": 0,
+        "CanBeLooted": 1,
+        "LootDropOnDeath": "ALL"
+    },
+    "Accuracy": {
+        "GlobalMinAccuracy": 0.1,
+        "GlobalMaxAccuracy": 0.9,
+        "AccuracyScaleWithDistance": 1,
+        "AccuracyDistanceFalloff": 0.005,
+        "HeadshotChance": 0.05,
+        "BurstFireEnabled": 1,
+        "BurstMinShots": 2,
+        "BurstMaxShots": 5,
+        "TimeBetweenShotsMin": 0.3,
+        "TimeBetweenShotsMax": 1.2,
+        "ReactionTimeMin": 0.5,
+        "ReactionTimeMax": 2.0
+    },
+    "Animation": {
+        "UseWalkAnimation": 1,
+        "UseRunAnimation": 1,
+        "UseSprintAnimation": 1,
+        "UseCrouchAnimation": 1,
+        "UseProneAnimation": 0,
+        "UseAimAnimation": 1,
+        "UseFireAnimation": 1,
+        "UseReloadAnimation": 1,
+        "UseDeathAnimation": 1,
+        "UseIdleAnimation": 1,
+        "TransitionSmoothing": 0.3
+    },
+    "Log": {
+        "LogModStart": 1,
+        "LogModStop": 1,
+        "LogRouteStart": 1,
+        "LogRouteEnd": 1,
+        "LogBotSpawn": 1,
+        "LogBotDeath": 1,
+        "LogRouteIntercepted": 1,
+        "LogCombatEngaged": 1,
+        "LogCombatDisengaged": 1,
+        "LogWaypointReached": 1,
+        "LogConfigReload": 1,
+        "LogToRPT": 0,
+        "LogToFile": 1
+    }
+}
