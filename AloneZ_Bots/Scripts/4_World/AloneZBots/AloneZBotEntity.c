@@ -101,6 +101,13 @@ class AloneZBotEntity
         if (m_WeaponIsRaised)
         {
             hic.OverrideRaise(true, true);
+
+            // ADS (mira) via comando de arma
+            HumanCommandWeapons hcw = m_Player.GetCommandModifier_Weapons();
+            if (hcw)
+            {
+                hcw.SetADS(true);
+            }
         }
 
         HumanCommandMove moveCmd = m_Player.GetCommand_Move();
@@ -343,7 +350,14 @@ class AloneZBotEntity
             return;
         }
 
-        // Dispara (som + efeito visual + consome bala do chamber)
+        // Dispara usando comando de arma (gera animacao + som + muzzle flash)
+        HumanCommandWeapons hcw = m_Player.GetCommandModifier_Weapons();
+        if (hcw)
+        {
+            hcw.StartAction(WeaponActions.FIRE, 0);
+        }
+
+        // Backup: dispara via evento de arma tambem (garante consumo de municao)
         weapon.ProcessWeaponEvent(new WeaponEventTrigger(m_Player));
 
         // Apos 300ms, cicla mecanismo para chambear proxima bala (como ABBot)
