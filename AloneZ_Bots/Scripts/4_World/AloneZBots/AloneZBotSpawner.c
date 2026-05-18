@@ -134,6 +134,9 @@ class AloneZBotSpawner
             if (loadout)
                 bot.ApplyLoadout(loadout);
 
+            // Prepara arma (engatilha se necessario)
+            bot.PrepareWeapon();
+
             // Aplica multiplicador de vida
             if (route.BotHealth && route.BotHealth.HealthMultiplier != 1.0)
             {

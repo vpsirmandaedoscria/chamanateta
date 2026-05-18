@@ -297,24 +297,45 @@ class AloneZBotEntity
         }
     }
 
-    // --- Combate (usa ProcessWeaponEvent para tiro real com som) ---
+    // --- Combate (com engatilhar, mirar e tiro real) ---
 
     void BotFireWeapon(Object target, float accuracy, bool isHeadshot)
     {
         if (!m_Player || !m_Player.IsAlive() || !target)
             return;
 
-        // Garante arma levantada
-        RaiseWeapon();
-
-        // Dispara tiro real via ProcessWeaponEvent (gera som + animacao)
-        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
-        if (weapon)
+        // Passo 1: Levanta arma primeiro — se nao estava levantada, espera proximo tick
+        if (!m_WeaponIsRaised)
         {
-            weapon.ProcessWeaponEvent(new WeaponEventTrigger(m_Player));
+            RaiseWeapon();
+            return;
         }
 
-        // Verifica hit baseado na accuracy (probabilidade direta)
+        // Passo 2: Verifica se tem arma na mao
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (!weapon)
+            return;
+
+        int mi = weapon.GetCurrentMuzzle();
+
+        // Passo 3: Se chamber esta vazio, tenta engatilhar/recarregar
+        if (weapon.IsChamberEmpty(mi))
+        {
+            // Tenta ciclar o mecanismo (puxar ferrolho) para chambear proxima bala
+            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+
+            // Tenta recarregar se magazine vazio
+            TryReload();
+            return;
+        }
+
+        // Passo 4: Dispara tiro real (gera som + animacao + consome municao)
+        weapon.ProcessWeaponEvent(new WeaponEventTrigger(m_Player));
+
+        // Passo 5: Apos 300ms, cicla o mecanismo para chambear proxima bala
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleWeaponAction, 300, false);
+
+        // Passo 6: Verifica hit baseado na accuracy
         float hitRoll = Math.RandomFloat01();
         if (hitRoll > accuracy)
             return;
@@ -327,23 +348,107 @@ class AloneZBotEntity
         if (AloneZBotEntity.IsBotPlayer(hitPlayer))
             return;
 
-        // Dano base aleatorio
         float damage = Math.RandomFloatInclusive(18, 35);
 
-        // Multiplicador de dano da rota
         if (m_RouteConfig && m_RouteConfig.BotHealth)
             damage = damage * m_RouteConfig.BotHealth.DamageDealtMultiplier;
 
-        // Headshot faz dano dobrado
         if (isHeadshot)
             damage = damage * 2.0;
 
-        // Aplica dano ao jogador
         hitPlayer.DecreaseHealth("", "", damage);
 
         string dmgStr = damage.ToString();
         string hitMsg = "Bot '" + m_BotName + "' acertou jogador. Dano: " + dmgStr;
         AloneZBotsLogger.LogInfo("COMBAT_HIT", hitMsg);
+    }
+
+    // Cicla o mecanismo da arma (puxa ferrolho) para chambear proxima bala
+    void CycleWeaponAction()
+    {
+        if (!m_Player || !m_Player.IsAlive())
+            return;
+
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (!weapon)
+            return;
+
+        int mi = weapon.GetCurrentMuzzle();
+        if (weapon.IsChamberEmpty(mi))
+        {
+            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+        }
+    }
+
+    // Tenta recarregar a arma com magazine reserva do inventario
+    void TryReload()
+    {
+        if (!m_Player)
+            return;
+
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (!weapon)
+            return;
+
+        WeaponManager wm = m_Player.GetWeaponManager();
+        if (!wm)
+            return;
+
+        int mi = weapon.GetCurrentMuzzle();
+        Magazine currentMag = Magazine.Cast(weapon.GetMagazine(mi));
+
+        // Se magazine atual ainda tem bala, so precisa ciclar
+        if (currentMag && currentMag.GetAmmoCount() > 0)
+            return;
+
+        // Procura magazine reserva no inventario
+        Magazine spareMag = FindSpareMagazine(weapon, mi);
+        if (spareMag && wm.CanAttachMagazine(weapon, spareMag))
+        {
+            wm.AttachMagazine(spareMag);
+            AloneZBotsLogger.LogDebug("COMBAT_RELOAD", "Bot '" + m_BotName + "' recarregou arma.");
+        }
+    }
+
+    // Procura magazine compativel no inventario do bot
+    protected Magazine FindSpareMagazine(Weapon_Base weapon, int mi)
+    {
+        if (!m_Player || !weapon)
+            return null;
+
+        GameInventory inv = m_Player.GetInventory();
+        if (!inv)
+            return null;
+
+        for (int i = 0; i < inv.GetCargo().GetItemCount(); i++)
+        {
+            EntityAI item = inv.GetCargo().GetItem(i);
+            Magazine mag = Magazine.Cast(item);
+            if (mag && mag.GetAmmoCount() > 0)
+            {
+                if (weapon.CanAttachMagazine(mi, mag))
+                    return mag;
+            }
+        }
+
+        return null;
+    }
+
+    // Prepara a arma ao spawnar (engatilha se necessario)
+    void PrepareWeapon()
+    {
+        if (!m_Player)
+            return;
+
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (!weapon)
+            return;
+
+        int mi = weapon.GetCurrentMuzzle();
+        if (weapon.IsChamberEmpty(mi))
+        {
+            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+        }
     }
 
     void RaiseWeapon()
