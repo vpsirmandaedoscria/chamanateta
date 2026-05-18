@@ -27,6 +27,11 @@ class AloneZBotEntity
     protected bool m_MoveTimerStarted;
     protected bool m_WeaponIsRaised;
 
+    // Controle de tiro: contador de disparos e recarga
+    protected int m_ShotsFired;
+    protected bool m_IsReloading;
+    static const int SHOTS_PER_MAGAZINE = 15;
+
     // Registro global de bots para deteccao de ameacas
     static ref set<PlayerBase> s_BotPlayers = new set<PlayerBase>;
 
@@ -45,6 +50,8 @@ class AloneZBotEntity
         m_MoveActive = false;
         m_MoveTimerStarted = false;
         m_WeaponIsRaised = false;
+        m_ShotsFired = 0;
+        m_IsReloading = false;
 
         if (player)
             s_BotPlayers.Insert(player);
@@ -300,7 +307,7 @@ class AloneZBotEntity
         }
     }
 
-    // --- Combate (com engatilhar, mirar e tiro real) ---
+    // --- Combate (ferrolha 1x, dispara 15 tiros, recarrega, repete) ---
 
     void BotFireWeapon(Object target, float accuracy, bool isHeadshot)
     {
@@ -314,73 +321,74 @@ class AloneZBotEntity
             return;
         }
 
-        // Passo 2: Verifica se tem arma na mao
+        // Passo 2: Se esta recarregando, espera
+        if (m_IsReloading)
+            return;
+
+        // Passo 3: Verifica se tem arma na mao
         Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
         if (!weapon)
             return;
 
-        int mi = weapon.GetCurrentMuzzle();
+        // Passo 4: Dispara tiro real (gera som + animacao)
+        weapon.ProcessWeaponEvent(new WeaponEventTrigger(m_Player));
+        m_ShotsFired++;
 
-        // Passo 3: Se chamber esta vazio, tenta engatilhar/recarregar
-        if (weapon.IsChamberEmpty(mi))
+        // Passo 5: Verifica hit baseado na accuracy
+        float hitRoll = Math.RandomFloat01();
+        if (hitRoll <= accuracy)
         {
-            // Tenta ciclar o mecanismo (puxar ferrolho) para chambear proxima bala
-            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+            PlayerBase hitPlayer = PlayerBase.Cast(target);
+            if (hitPlayer && hitPlayer.IsAlive() && !AloneZBotEntity.IsBotPlayer(hitPlayer))
+            {
+                float damage = Math.RandomFloatInclusive(18, 35);
 
-            // Tenta recarregar se magazine vazio
-            TryReload();
-            return;
+                if (m_RouteConfig && m_RouteConfig.BotHealth)
+                    damage = damage * m_RouteConfig.BotHealth.DamageDealtMultiplier;
+
+                if (isHeadshot)
+                    damage = damage * 2.0;
+
+                hitPlayer.DecreaseHealth("", "", damage);
+
+                string dmgStr = damage.ToString();
+                string hitMsg = "Bot '" + m_BotName + "' acertou jogador. Dano: " + dmgStr;
+                AloneZBotsLogger.LogInfo("COMBAT_HIT", hitMsg);
+            }
         }
 
-        // Passo 4: Dispara tiro real (gera som + animacao + consome municao)
-        weapon.ProcessWeaponEvent(new WeaponEventTrigger(m_Player));
-
-        // Passo 5: Apos 300ms, cicla o mecanismo para chambear proxima bala
-        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleWeaponAction, 300, false);
-
-        // Passo 6: Verifica hit baseado na accuracy
-        float hitRoll = Math.RandomFloat01();
-        if (hitRoll > accuracy)
-            return;
-
-        // Acertou — aplica dano
-        PlayerBase hitPlayer = PlayerBase.Cast(target);
-        if (!hitPlayer || !hitPlayer.IsAlive())
-            return;
-
-        if (AloneZBotEntity.IsBotPlayer(hitPlayer))
-            return;
-
-        float damage = Math.RandomFloatInclusive(18, 35);
-
-        if (m_RouteConfig && m_RouteConfig.BotHealth)
-            damage = damage * m_RouteConfig.BotHealth.DamageDealtMultiplier;
-
-        if (isHeadshot)
-            damage = damage * 2.0;
-
-        hitPlayer.DecreaseHealth("", "", damage);
-
-        string dmgStr = damage.ToString();
-        string hitMsg = "Bot '" + m_BotName + "' acertou jogador. Dano: " + dmgStr;
-        AloneZBotsLogger.LogInfo("COMBAT_HIT", hitMsg);
+        // Passo 6: Apos 15 tiros, recarrega
+        if (m_ShotsFired >= SHOTS_PER_MAGAZINE)
+        {
+            m_ShotsFired = 0;
+            m_IsReloading = true;
+            AloneZBotsLogger.LogDebug("COMBAT_RELOAD", "Bot '" + m_BotName + "' recarregando apos 15 tiros.");
+            // Recarrega apos 2 segundos (tempo de animacao de recarga)
+            GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(DoReload, 2000, false);
+        }
     }
 
-    // Cicla o mecanismo da arma (puxa ferrolho) para chambear proxima bala
-    void CycleWeaponAction()
+    // Executa a recarga efetiva
+    void DoReload()
     {
         if (!m_Player || !m_Player.IsAlive())
+        {
+            m_IsReloading = false;
             return;
+        }
 
         Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
-        if (!weapon)
-            return;
-
-        int mi = weapon.GetCurrentMuzzle();
-        if (weapon.IsChamberEmpty(mi))
+        if (weapon)
         {
+            // Tenta trocar magazine
+            TryReload();
+
+            // Ferrolha uma vez para preparar para atirar
             weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
         }
+
+        m_IsReloading = false;
+        AloneZBotsLogger.LogDebug("COMBAT_RELOAD", "Bot '" + m_BotName + "' recarga completa. Pronto para atirar.");
     }
 
     // Tenta recarregar a arma com magazine reserva do inventario
@@ -409,7 +417,7 @@ class AloneZBotEntity
         if (spareMag && wm.CanAttachMagazine(weapon, spareMag))
         {
             wm.AttachMagazine(spareMag);
-            AloneZBotsLogger.LogDebug("COMBAT_RELOAD", "Bot '" + m_BotName + "' recarregou arma.");
+            AloneZBotsLogger.LogDebug("COMBAT_RELOAD", "Bot '" + m_BotName + "' trocou magazine.");
         }
     }
 
@@ -437,7 +445,7 @@ class AloneZBotEntity
         return null;
     }
 
-    // Prepara a arma ao spawnar (engatilha se necessario)
+    // Prepara a arma ao spawnar (ferrolha 1 vez)
     void PrepareWeapon()
     {
         if (!m_Player)
@@ -447,11 +455,10 @@ class AloneZBotEntity
         if (!weapon)
             return;
 
-        int mi = weapon.GetCurrentMuzzle();
-        if (weapon.IsChamberEmpty(mi))
-        {
-            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
-        }
+        // Ferrolha uma vez para preparar a arma
+        weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+        m_ShotsFired = 0;
+        m_IsReloading = false;
     }
 
     void RaiseWeapon()
