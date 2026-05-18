@@ -217,21 +217,8 @@ class AloneZBotCombatHandler
         if (!m_Bot)
             return;
 
-        Weapon_Base weapon = Weapon_Base.Cast(m_Bot.GetHumanInventory().GetEntityInHands());
-        if (weapon)
-        {
-            int muzzleIndex = weapon.GetCurrentMuzzle();
-            if (weapon.IsChamberEmpty(muzzleIndex))
-            {
-                // Precisa recarregar
-                if (m_Bot.GetAnimHandler())
-                {
-                    m_Bot.GetAnimHandler().PlayReload();
-                }
-
-                AloneZBotsLogger.LogDebug("COMBAT_START", "Bot '" + m_Bot.GetBotName() + "' recarregando arma.");
-            }
-        }
+        // Usa o sistema de recarga do BotEntity que procura magazine reserva
+        m_Bot.TryReload();
     }
 
     // Verifica se alvo esta no alcance de engajamento

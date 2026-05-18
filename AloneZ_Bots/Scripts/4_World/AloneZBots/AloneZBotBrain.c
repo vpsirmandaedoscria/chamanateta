@@ -131,6 +131,7 @@ class AloneZBotBrain
 
             case AloneZBotState.IDLE:
                 m_WaitingAtWaypoint = true;
+                m_Bot.StopMovement();
                 break;
 
             case AloneZBotState.COMBAT:
@@ -272,26 +273,31 @@ class AloneZBotBrain
             }
         }
 
-        // Movimento de combate — aproxima do alvo se longe, posiciona se perto
+        // Movimento de combate — aproxima do alvo ate 10m no maximo
         float distToTarget = vector.Distance(m_Bot.GetPosition(), m_CurrentTarget.GetPosition());
-        float engageRange = AloneZBotsConfig.GetGlobalSettings().BotEngageRange;
 
-        if (distToTarget > engageRange * 0.5)
+        if (distToTarget > 50.0)
         {
-            // Corre em direcao ao alvo
+            // Longe: corre em direcao ao alvo
             m_Bot.MoveToPosition(m_CurrentTarget.GetPosition(), deltaTime);
             if (m_AnimHandler)
                 m_AnimHandler.SetMovement("JOG", "ERECT");
         }
-        else if (distToTarget > 15.0)
+        else if (distToTarget > 10.0)
         {
-            // Anda em direcao ao alvo
+            // Medio: anda em direcao ao alvo
             m_Bot.MoveToPosition(m_CurrentTarget.GetPosition(), deltaTime);
             if (m_AnimHandler)
                 m_AnimHandler.SetMovement("WALK", "ERECT");
         }
+        else
+        {
+            // Dentro de 10m: para de se mover, fica parado mirando
+            m_Bot.StopMovement();
+        }
 
-        // Engaja o alvo (vira e atira)
+        // Olha para o alvo e engaja (mira e atira)
+        m_Bot.LookAtPosition(m_CurrentTarget.GetPosition());
         if (m_CombatHandler)
             m_CombatHandler.EngageTarget(m_CurrentTarget, deltaTime);
     }
@@ -393,6 +399,10 @@ class AloneZBotBrain
             // Ignora se e outro bot AloneZ
             PlayerBase pb = PlayerBase.Cast(player);
             if (pb && AloneZBotEntity.IsBotPlayer(pb))
+                continue;
+
+            // Ignora admin invisivel
+            if (pb && pb.IsInvisible())
                 continue;
 
             float dist = vector.Distance(m_Bot.GetPosition(), player.GetPosition());

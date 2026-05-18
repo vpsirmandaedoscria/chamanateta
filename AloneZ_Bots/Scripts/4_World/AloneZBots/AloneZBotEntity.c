@@ -119,6 +119,9 @@ class AloneZBotEntity
         m_BotAlive = true;
         m_WasAlive = true;
 
+        // Inicia timer de movimento para garantir que o bot anda desde o inicio
+        StartMoveTimer();
+
         string spawnMsg = "Bot '" + m_BotName + "' spawnado na rota '" + routeConfig.RouteID + "'";
         AloneZBotsLogger.LogInfo("BOT_SPAWN", spawnMsg);
     }
