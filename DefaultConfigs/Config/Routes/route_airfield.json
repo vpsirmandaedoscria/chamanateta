@@ -1,0 +1,90 @@
+{
+    "RouteName": "Patrulha Aeroporto",
+    "RouteID": "route_airfield",
+    "Enabled": 1,
+    "BotCount": 3,
+    "Formation": "WEDGE",
+    "FormationSpacing": 6.0,
+    "Faction": "Military",
+    "Loadout": "loadout_soldier",
+    "RespawnOnComplete": 1,
+    "LoopRoute": 1,
+    "WaypointBehavior": "LOOP",
+    "DefaultSpeed": "WALK",
+    "DefaultStance": "ERECT",
+    "BotAccuracy": {
+        "MinAccuracy": 0.4,
+        "MaxAccuracy": 0.8,
+        "OverrideGlobal": 1
+    },
+    "BotHealth": {
+        "HealthMultiplier": 1.2,
+        "DamageReceivedMultiplier": 0.9,
+        "DamageDealtMultiplier": 1.1
+    },
+    "BotBehavior": {
+        "EngageOnSight": 1,
+        "FleeOnLowHealth": 0,
+        "FleeHealthThreshold": 15.0,
+        "CallReinforcements": 0,
+        "SearchAfterCombat": 1,
+        "SearchDurationSeconds": 45,
+        "ReturnToRouteAfterCombat": 1
+    },
+    "BotAppearance": {
+        "ClassNames": [
+            "SurvivorM_Hassan",
+            "SurvivorM_Indar",
+            "SurvivorM_Jose"
+        ],
+        "RandomizeAppearance": 1
+    },
+    "Waypoints": [
+        {
+            "Index": 0,
+            "Name": "Hangar Norte",
+            "Position": [4800.00, 350.00, 9200.00],
+            "WaitTime": 8.0,
+            "Speed": "WALK",
+            "Stance": "ERECT",
+            "LookDirection": [0.0, 0.0, 1.0],
+            "Action": "SCAN"
+        },
+        {
+            "Index": 1,
+            "Name": "Pista Central",
+            "Position": [4900.00, 348.00, 9250.00],
+            "WaitTime": 5.0,
+            "Speed": "JOG",
+            "Stance": "ERECT",
+            "LookDirection": [1.0, 0.0, 0.0],
+            "Action": "NONE"
+        },
+        {
+            "Index": 2,
+            "Name": "Torre de Controle",
+            "Position": [4950.00, 355.00, 9180.00],
+            "WaitTime": 15.0,
+            "Speed": "WALK",
+            "Stance": "CROUCH",
+            "LookDirection": [0.0, 0.0, -1.0],
+            "Action": "SCAN"
+        },
+        {
+            "Index": 3,
+            "Name": "Hangar Sul",
+            "Position": [4850.00, 349.00, 9150.00],
+            "WaitTime": 8.0,
+            "Speed": "WALK",
+            "Stance": "ERECT",
+            "LookDirection": [-1.0, 0.0, 0.0],
+            "Action": "NONE"
+        }
+    ],
+    "Schedule": {
+        "UseSchedule": 0,
+        "ActiveHoursStart": 6,
+        "ActiveHoursEnd": 22,
+        "DaysOfWeek": [1, 2, 3, 4, 5, 6, 7]
+    }
+}
