@@ -1,8 +1,8 @@
 // ============================================================================
 // AloneZ Bots — Classe Principal do Bot (Controller/Wrapper)
 // Wraps a vanilla PlayerBase entity with bot AI behavior
-// Usa SetPosition para movimento + SetDirection para facing
-// Usa ProcessDirectDamage + GetCommandModifier_Weapons para combate
+// Usa HumanInputController para movimento com animacao
+// Usa ProcessWeaponEvent para tiros reais com som
 // ============================================================================
 
 class AloneZBotEntity
@@ -20,6 +20,13 @@ class AloneZBotEntity
     protected bool m_WasAlive;
     protected int m_DebugCounter;
 
+    // Estado de movimento via InputController
+    protected float m_MoveSpeed;
+    protected float m_MoveAngle;
+    protected bool m_MoveActive;
+    protected bool m_MoveTimerStarted;
+    protected bool m_WeaponIsRaised;
+
     // Registro global de bots para deteccao de ameacas
     static ref set<PlayerBase> s_BotPlayers = new set<PlayerBase>;
 
@@ -33,6 +40,11 @@ class AloneZBotEntity
         m_BotAlive = true;
         m_WasAlive = true;
         m_DebugCounter = 0;
+        m_MoveSpeed = 0;
+        m_MoveAngle = 0;
+        m_MoveActive = false;
+        m_MoveTimerStarted = false;
+        m_WeaponIsRaised = false;
 
         if (player)
             s_BotPlayers.Insert(player);
@@ -40,8 +52,58 @@ class AloneZBotEntity
 
     void ~AloneZBotEntity()
     {
+        StopMoveTimer();
         if (m_Player)
             s_BotPlayers.RemoveItem(m_Player);
+    }
+
+    // --- Timer de movimento (roda a cada frame ~33ms) ---
+
+    protected void StartMoveTimer()
+    {
+        if (m_MoveTimerStarted)
+            return;
+        m_MoveTimerStarted = true;
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(OnMoveFrame, 33, true);
+    }
+
+    protected void StopMoveTimer()
+    {
+        if (!m_MoveTimerStarted)
+            return;
+        m_MoveTimerStarted = false;
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(OnMoveFrame);
+    }
+
+    void OnMoveFrame()
+    {
+        if (!m_Player || !m_Player.IsAlive())
+            return;
+
+        HumanInputController hic = m_Player.GetInputController();
+        if (!hic)
+            return;
+
+        if (m_MoveActive)
+        {
+            hic.OverrideMovementSpeed(true, m_MoveSpeed);
+            hic.OverrideMovementAngle(true, m_MoveAngle);
+        }
+        else
+        {
+            hic.OverrideMovementSpeed(true, 0);
+        }
+
+        if (m_WeaponIsRaised)
+        {
+            hic.OverrideRaise(true, true);
+        }
+
+        HumanCommandMove moveCmd = m_Player.GetCommand_Move();
+        if (moveCmd)
+        {
+            moveCmd.ForceStance(DayZPlayerConstants.STANCEIDX_ERECT);
+        }
     }
 
     void InitBot(string botName, AloneZRouteConfig routeConfig, int memberIndex)
@@ -171,7 +233,7 @@ class AloneZBotEntity
         return null;
     }
 
-    // --- Movimento (usa SetPosition + SetDirection como referencia) ---
+    // --- Movimento (usa HumanInputController para animacao correta) ---
 
     void MoveToPosition(vector targetPos, float deltaTime)
     {
@@ -184,54 +246,80 @@ class AloneZBotEntity
 
         float dist = direction.Length();
         if (dist < 0.5)
+        {
+            StopMovement();
             return;
+        }
 
         direction.Normalize();
 
         // Vira o bot na direcao do movimento
         m_Player.SetDirection(direction);
 
-        // Velocidades reais em m/s
-        float speedMPS = 1.8;
+        // Calcula angulo de movimento relativo a direcao do bot
+        vector playerDir = m_Player.GetDirection();
+        float angle = Math.Atan2(direction[0], direction[2]) - Math.Atan2(playerDir[0], playerDir[2]);
+
+        // Velocidade: 1.0 = andar, 2.0 = correr, 3.0 = sprint
+        float speed = 1.0;
         if (m_AnimHandler)
         {
             float speedVal = m_AnimHandler.GetCurrentSpeedValue();
             if (speedVal >= 3.0)
-                speedMPS = 6.5;
+                speed = 3.0;
             else if (speedVal >= 2.0)
-                speedMPS = 4.0;
-            else if (speedVal >= 1.0)
-                speedMPS = 1.8;
+                speed = 2.0;
             else
-                speedMPS = 0.0;
+                speed = 1.0;
         }
 
-        float moveDist = speedMPS * deltaTime;
-        if (moveDist > dist)
-            moveDist = dist;
+        m_MoveSpeed = speed;
+        m_MoveAngle = angle;
+        m_MoveActive = true;
 
-        vector newPos = currentPos + (direction * moveDist);
-        float surfY = GetGame().SurfaceY(newPos[0], newPos[2]);
-        newPos[1] = surfY;
-        m_Player.SetPosition(newPos);
+        if (!m_MoveTimerStarted)
+            StartMoveTimer();
     }
 
-    // --- Combate (usa ProcessDirectDamage + WeaponActions.FIRE) ---
+    void StopMovement()
+    {
+        m_MoveActive = false;
+        m_MoveSpeed = 0;
+        m_MoveAngle = 0;
+
+        if (m_Player)
+        {
+            HumanInputController hic = m_Player.GetInputController();
+            if (hic)
+            {
+                hic.OverrideMovementSpeed(true, 0);
+            }
+        }
+    }
+
+    // --- Combate (usa ProcessWeaponEvent para tiro real com som) ---
 
     void BotFireWeapon(Object target, float accuracy, bool isHeadshot)
     {
         if (!m_Player || !m_Player.IsAlive() || !target)
             return;
 
-        // Animacao de tiro via HumanCommandWeapons
-        PlayFireAnimation();
+        // Garante arma levantada
+        RaiseWeapon();
+
+        // Dispara tiro real via ProcessWeaponEvent (gera som + animacao)
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (weapon)
+        {
+            weapon.ProcessWeaponEvent(new WeaponEventTrigger(m_Player));
+        }
 
         // Verifica hit baseado na accuracy (probabilidade direta)
         float hitRoll = Math.RandomFloat01();
         if (hitRoll > accuracy)
             return;
 
-        // Acertou — aplica dano via ProcessDirectDamage
+        // Acertou — aplica dano
         PlayerBase hitPlayer = PlayerBase.Cast(target);
         if (!hitPlayer || !hitPlayer.IsAlive())
             return;
@@ -258,26 +346,26 @@ class AloneZBotEntity
         AloneZBotsLogger.LogInfo("COMBAT_HIT", hitMsg);
     }
 
-    void PlayFireAnimation()
-    {
-        if (!m_Player)
-            return;
-
-        HumanCommandWeapons hcw = m_Player.GetCommandModifier_Weapons();
-        if (hcw)
-        {
-            hcw.StartAction(WeaponActions.FIRE, 0);
-        }
-    }
-
     void RaiseWeapon()
     {
-        // Handled by PlayFireAnimation
+        if (m_WeaponIsRaised)
+            return;
+        m_WeaponIsRaised = true;
+        if (!m_MoveTimerStarted)
+            StartMoveTimer();
     }
 
     void LowerWeapon()
     {
-        // Noop
+        m_WeaponIsRaised = false;
+        if (m_Player)
+        {
+            HumanInputController hic = m_Player.GetInputController();
+            if (hic)
+            {
+                hic.OverrideRaise(true, false);
+            }
+        }
     }
 
     // --- Look At (usa SetDirection) ---
