@@ -266,7 +266,7 @@ class AloneZBotEntity
         HumanCommandWeapons hcw = m_Player.GetCommandModifier_Weapons();
         if (hcw)
         {
-            hcw.StartAction(WeaponActions.FIRE, WeaponActionTypes.FIRE_NORMAL);
+            hcw.StartAction(WeaponActions.FIRE, 0);
         }
     }
 
