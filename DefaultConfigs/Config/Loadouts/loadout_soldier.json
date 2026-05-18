@@ -30,5 +30,5 @@
         { "ClassName": "BandageDressing", "Quantity": 2 },
         { "ClassName": "SalineBagIV", "Quantity": 1 }
     ],
-    "UnlimitedAmmo": 0
+    "UnlimitedAmmo": 1
 }

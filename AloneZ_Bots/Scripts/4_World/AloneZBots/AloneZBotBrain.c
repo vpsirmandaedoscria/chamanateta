@@ -50,6 +50,10 @@ class AloneZBotBrain
         m_WaitingAtWaypoint = false;
         m_StartupTimer = 0;
         m_StartupComplete = false;
+
+        // Bot spawna no waypoint #0 — avanca para #1 e comeca a andar imediatamente
+        if (m_WaypointMgr)
+            m_WaypointMgr.AdvanceToNext();
     }
 
     void Update(float deltaTime)
@@ -76,11 +80,11 @@ class AloneZBotBrain
                 break;
         }
 
-        // Periodo de graca no startup (15s sem detectar ameacas para patrulhar)
+        // Periodo de graca no startup (3s sem detectar ameacas para patrulhar)
         if (!m_StartupComplete)
         {
             m_StartupTimer += deltaTime;
-            if (m_StartupTimer >= 15.0)
+            if (m_StartupTimer >= 3.0)
             {
                 m_StartupComplete = true;
                 Print("[AloneZ] Bot '" + m_Bot.GetBotName() + "' startup completo. Deteccao de ameacas ativada.");
