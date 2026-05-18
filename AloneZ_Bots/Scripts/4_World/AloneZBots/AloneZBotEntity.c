@@ -313,7 +313,7 @@ class AloneZBotEntity
         }
     }
 
-    // --- Combate (municao infinita, sem ferrolhamento, dano direto) ---
+    // --- Combate (municao infinita, cicla mecanismo, dano direto) ---
 
     void BotFireWeapon(Object target, float accuracy, bool isHeadshot)
     {
@@ -331,18 +331,30 @@ class AloneZBotEntity
         if (!weapon)
             return;
 
+        int mi = weapon.GetCurrentMuzzle();
+
         // Municao infinita: recarrega magazine antes de cada tiro
         RefillAmmo(weapon);
 
-        // Dispara (som + efeito visual)
+        // Se chamber vazio, cicla mecanismo para chambear bala do magazine
+        if (weapon.IsChamberEmpty(mi))
+        {
+            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+            return;
+        }
+
+        // Dispara (som + efeito visual + consome bala do chamber)
         weapon.ProcessWeaponEvent(new WeaponEventTrigger(m_Player));
+
+        // Apos 300ms, cicla mecanismo para chambear proxima bala (como ABBot)
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(CycleWeaponAction, 300, false);
 
         // Verifica hit baseado na accuracy
         float hitRoll = Math.RandomFloat01();
         if (hitRoll > accuracy)
             return;
 
-        // Acertou — aplica dano direto (como o ABBot que funciona)
+        // Acertou — aplica dano direto (funciona independente do sistema de arma)
         PlayerBase hitPlayer = PlayerBase.Cast(target);
         if (!hitPlayer || !hitPlayer.IsAlive())
             return;
@@ -358,10 +370,9 @@ class AloneZBotEntity
         if (isHeadshot)
             damage = damage * 2.0;
 
-        // Dano direto no jogador (funciona independente do sistema de arma)
+        // Dano direto no jogador
         string damageZone = GetRandomDamageZone();
         string ammoType = "Bullet_556x45";
-        int mi = weapon.GetCurrentMuzzle();
         string weapAmmo;
         float weapDamage;
         if (weapon.GetCartridgeInfo(mi, weapDamage, weapAmmo))
@@ -374,6 +385,26 @@ class AloneZBotEntity
         AloneZBotsLogger.LogInfo("COMBAT_HIT", hitMsg);
     }
 
+    // Cicla mecanismo da arma (puxa ferrolho para chambear proxima bala)
+    void CycleWeaponAction()
+    {
+        if (!m_Player || !m_Player.IsAlive())
+            return;
+
+        Weapon_Base weapon = Weapon_Base.Cast(m_Player.GetItemInHands());
+        if (!weapon)
+            return;
+
+        // Recarrega magazine (municao infinita)
+        RefillAmmo(weapon);
+
+        int mi = weapon.GetCurrentMuzzle();
+        if (weapon.IsChamberEmpty(mi))
+        {
+            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+        }
+    }
+
     // Recarrega municao da arma (municao infinita)
     protected void RefillAmmo(Weapon_Base weapon)
     {
@@ -384,7 +415,6 @@ class AloneZBotEntity
         Magazine mag = Magazine.Cast(weapon.GetMagazine(mi));
         if (mag)
         {
-            // Enche o magazine atual
             mag.ServerSetAmmoCount(mag.GetAmmoMax());
         }
     }
@@ -407,13 +437,12 @@ class AloneZBotEntity
             return "RightLeg";
     }
 
-    // Chamado pelo CombatHandler para verificar recarga (nao necessario com municao infinita)
+    // Chamado pelo CombatHandler para verificar recarga (municao infinita — nada a fazer)
     void TryReload()
     {
-        // Municao infinita — nada a fazer
     }
 
-    // Prepara a arma ao spawnar
+    // Prepara a arma ao spawnar (chambera primeira bala)
     void PrepareWeapon()
     {
         if (!m_Player)
@@ -423,8 +452,13 @@ class AloneZBotEntity
         if (!weapon)
             return;
 
-        // Recarrega arma completamente
+        // Recarrega magazine e chambera primeira bala
         RefillAmmo(weapon);
+        int mi = weapon.GetCurrentMuzzle();
+        if (weapon.IsChamberEmpty(mi))
+        {
+            weapon.ProcessWeaponEvent(new WeaponEventMechanism(m_Player));
+        }
         m_WeaponPrepared = true;
     }
 
