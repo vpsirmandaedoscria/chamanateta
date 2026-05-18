@@ -5,13 +5,13 @@
             "ClassName": "M4A1",
             "Attachments": ["M4_RISHndgrd_Black", "M4_OEBttstck_Black", "ACOGOptic"],
             "Magazine": "Mag_STANAG_30Rnd",
-            "MagazineCount": 3
+            "MagazineCount": 5
         },
         "Secondary": {
             "ClassName": "MakarovIJ70",
             "Attachments": [],
             "Magazine": "Mag_IJ70_8Rnd",
-            "MagazineCount": 2
+            "MagazineCount": 4
         },
         "Melee": "CombatKnife"
     },
