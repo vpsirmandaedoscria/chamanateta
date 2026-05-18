@@ -401,8 +401,8 @@ class AloneZBotBrain
             if (pb && AloneZBotEntity.IsBotPlayer(pb))
                 continue;
 
-            // Ignora admin invisivel
-            if (pb && pb.IsInvisible())
+            // Ignora admin invisivel (simulacao desativada = invisivel por admin tools)
+            if (pb && pb.GetIsSimulationDisabled())
                 continue;
 
             float dist = vector.Distance(m_Bot.GetPosition(), player.GetPosition());
