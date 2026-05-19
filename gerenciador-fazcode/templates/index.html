@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciador Fazcode</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/icon.svg">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <img src="/static/img/icon.svg" alt="Fazcode" class="header-logo">
+      <div>
+        <div class="header-title">GERENCIADOR FAZCODE</div>
+        <div class="header-subtitle">Process Monitor &amp; Auto-Restart</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="monitor-status" class="monitor-status inactive">
+        <span class="status-dot"></span> PARADO
+      </div>
+      <button id="btn-start-monitor" class="btn btn-success btn-sm" onclick="startMonitoring()">
+        &#9654; Iniciar
+      </button>
+      <button id="btn-stop-monitor" class="btn btn-danger btn-sm" onclick="stopMonitoring()" style="display:none">
+        &#9632; Parar
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="main-content">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Total Processos</div>
+        <div class="stat-value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Rodando</div>
+        <div class="stat-value success" id="stat-running">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Parados</div>
+        <div class="stat-value error" id="stat-stopped">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Reinícios</div>
+        <div class="stat-value" id="stat-restarts">0</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="processes">&#9881; Processos</button>
+      <button class="tab" data-tab="bec">&#128338; BEC Scheduler</button>
+      <button class="tab" data-tab="rcon">&#128225; RCON</button>
+      <button class="tab" data-tab="bans">&#128683; Bans</button>
+      <button class="tab" data-tab="players">&#128101; Players</button>
+      <button class="tab" data-tab="logs">&#9776; Logs</button>
+      <button class="tab" data-tab="settings">&#9881; Configurações</button>
+    </div>
+
+    <!-- Tab: Processes -->
+    <div id="processes" class="tab-content active">
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="search-input" placeholder="Buscar processo..." oninput="renderProcesses()">
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          &#43; Adicionar
+        </button>
+      </div>
+      <div id="process-list" class="process-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">&#9881;</div>
+          <div class="empty-state-text">Nenhum processo monitorado</div>
+          <div class="empty-state-sub">Clique em "Adicionar" para monitorar um processo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: BEC Scheduler -->
+    <div id="bec" class="tab-content">
+      <div class="bec-container">
+        <!-- Restart Times -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128338; Horários de Restart</div>
+          <div class="bec-restart-times">
+            <div id="bec-times-list" class="bec-times-grid"></div>
+            <div class="bec-add-time">
+              <input type="time" id="bec-new-time" class="form-input" style="width:140px">
+              <button class="btn btn-primary btn-sm" onclick="addRestartTime()">+ Adicionar Horário</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Days -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128197; Dias da Semana</div>
+          <div class="bec-days-grid">
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-1" checked onchange="saveBecSettings()"><span>Seg</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-2" checked onchange="saveBecSettings()"><span>Ter</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-3" checked onchange="saveBecSettings()"><span>Qua</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-4" checked onchange="saveBecSettings()"><span>Qui</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-5" checked onchange="saveBecSettings()"><span>Sex</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-6" checked onchange="saveBecSettings()"><span>Sab</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-7" checked onchange="saveBecSettings()"><span>Dom</span></label>
+          </div>
+        </div>
+
+        <!-- Warning Messages -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128172; Mensagens de Aviso</div>
+          <div id="bec-warnings-list" class="bec-warnings-list"></div>
+          <div class="bec-add-warning">
+            <input type="number" id="bec-warn-minutes" class="form-input" placeholder="Min antes" min="1" max="120" style="width:100px">
+            <input type="text" id="bec-warn-message" class="form-input" placeholder="Mensagem de aviso..." style="flex:1">
+            <button class="btn btn-primary btn-sm" onclick="addWarning()">+ Aviso</button>
+          </div>
+        </div>
+
+        <!-- Kick & Lock Settings -->
+        <div class="settings-grid" style="margin-top:0">
+          <div class="settings-card">
+            <div class="settings-card-title">&#128683; Kick antes do Restart</div>
+            <div class="form-group">
+              <div class="form-check">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="bec-kick-enabled" checked onchange="saveBecSettings()">
+                  <span class="toggle-slider"></span>
+                </label>
+                <label class="form-label" style="margin-bottom:0">Ativar Kick</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minutos antes do restart</label>
+              <input type="number" id="bec-kick-minutes" class="form-input" min="1" max="30" value="1" onchange="saveBecSettings()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mensagem do Kick</label>
+              <input type="text" id="bec-kick-message" class="form-input" value="Servidor reiniciando! Voce sera reconectado em breve." onchange="saveBecSettings()">
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <div class="settings-card-title">&#128274; Lock & Shutdown</div>
+            <div class="form-group">
+              <div class="form-check">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="bec-lock-enabled" checked onchange="saveBecSettings()">
+                  <span class="toggle-slider"></span>
+                </label>
+                <label class="form-label" style="margin-bottom:0">Trancar Servidor antes do Restart</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Trancar X min antes</label>
+              <input type="number" id="bec-lock-minutes" class="form-input" min="1" max="30" value="2" onchange="saveBecSettings()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Comando de Shutdown</label>
+              <select id="bec-shutdown-cmd" class="form-input" onchange="saveBecSettings()">
+                <option value="#shutdown">#shutdown</option>
+                <option value="#restart">#restart</option>
+                <option value="#shutdown">#shutdown (padrão)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Jobs -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128295; Jobs Customizados</div>
+          <div id="bec-custom-jobs-list" class="bec-custom-jobs-list"></div>
+          <div class="bec-add-custom-job">
+            <input type="text" id="bec-cj-label" class="form-input" placeholder="Nome do Job" style="width:150px">
+            <input type="time" id="bec-cj-time" class="form-input" style="width:120px" step="1">
+            <input type="text" id="bec-cj-cmd" class="form-input" placeholder="Comando BEC (ex: say -1 Mensagem)" style="flex:1">
+            <button class="btn btn-primary btn-sm" onclick="addCustomJob()">+ Job</button>
+          </div>
+        </div>
+
+        <!-- XML Preview & Export -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128196; XML Preview & Exportar</div>
+          <div class="bec-xml-actions">
+            <button class="btn btn-secondary" onclick="previewXml()">&#128065; Visualizar XML</button>
+            <button class="btn btn-primary" onclick="exportXml()">&#128190; Exportar scheduler.xml</button>
+          </div>
+          <pre id="bec-xml-preview" class="bec-xml-preview" style="display:none"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: RCON -->
+    <div id="rcon" class="tab-content">
+      <div class="settings-grid">
+        <!-- RCON Connection -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128225; Conexão RCON</div>
+          <div id="rcon-status" class="rcon-status disconnected">
+            <span class="status-dot"></span> DESCONECTADO
+          </div>
+          <div class="form-group">
+            <label class="form-label">IP do Servidor</label>
+            <input type="text" id="rcon-host" class="form-input" placeholder="127.0.0.1" value="127.0.0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Porta RCON</label>
+            <input type="number" id="rcon-port" class="form-input" placeholder="2302" value="2302">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Senha RCON</label>
+            <input type="password" id="rcon-password" class="form-input" placeholder="Senha do RCON">
+          </div>
+          <div class="form-group">
+            <div class="form-check">
+              <label class="toggle-switch">
+                <input type="checkbox" id="rcon-kickban" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="form-label" style="margin-bottom:0">Auto-Kickban (banidos)</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-success btn-sm" onclick="connectRcon()">&#9654; Conectar</button>
+            <button class="btn btn-danger btn-sm" onclick="disconnectRcon()">&#9632; Desconectar</button>
+            <button class="btn btn-secondary btn-sm" onclick="saveRconConfig()">&#128190; Salvar Config</button>
+          </div>
+        </div>
+
+        <!-- RCON Chat -->
+        <div class="settings-card" style="flex:2">
+          <div class="settings-card-title">&#128172; Chat / Comandos</div>
+          <div id="rcon-chat-log" class="rcon-chat-log">
+            <div class="bec-empty">Conecte ao RCON para enviar comandos</div>
+          </div>
+          <div class="rcon-chat-input">
+            <input type="text" id="rcon-cmd-input" class="form-input" placeholder="Digite um comando RCON ou mensagem..." onkeypress="if(event.key==='Enter')sendRconCmd()">
+            <button class="btn btn-primary btn-sm" onclick="sendRconCmd()">Enviar</button>
+            <button class="btn btn-secondary btn-sm" onclick="sendRconSay()">&#128172; Say</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Commands -->
+      <div class="settings-card" style="margin-top:16px">
+        <div class="settings-card-title">&#9889; Comandos Rápidos</div>
+        <div class="rcon-quick-cmds">
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('players')">&#128101; Players</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('bans')">&#128683; Bans</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('#lock')">&#128274; Lock</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('#unlock')">&#128275; Unlock</button>
+          <button class="btn btn-danger btn-sm" onclick="if(confirm('Tem certeza?'))sendQuickCmd('#shutdown')">&#9888; Shutdown</button>
+          <button class="btn btn-danger btn-sm" onclick="if(confirm('Tem certeza?'))sendQuickCmd('#restart')">&#8635; Restart</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('kick -1 Servidor reiniciando!')">&#128683; Kick All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Bans -->
+    <div id="bans" class="tab-content">
+      <div class="settings-card">
+        <div class="settings-card-title">&#128683; Banco de Dados de Bans</div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <div class="search-box">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="ban-search" class="form-input" placeholder="Buscar por Steam ID ou nome..." oninput="filterBans()">
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="openBanModal()">+ Adicionar Ban</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportBans()">&#128190; Exportar bans.txt</button>
+          </div>
+        </div>
+        <div id="bans-list" class="bans-list">
+          <div class="bec-empty">Nenhum ban registrado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Players -->
+    <div id="players" class="tab-content">
+      <!-- Online Players -->
+      <div class="settings-card">
+        <div class="settings-card-title">&#128994; Players Online</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn btn-primary btn-sm" onclick="refreshPlayers()">&#8635; Atualizar Lista</button>
+        </div>
+        <div id="players-online-list" class="players-list">
+          <div class="bec-empty">Conecte ao RCON para ver os players online</div>
+        </div>
+      </div>
+
+      <!-- Player History -->
+      <div class="settings-card" style="margin-top:16px">
+        <div class="settings-card-title">&#128202; Histórico de Players</div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <div class="search-box">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="player-search" class="form-input" placeholder="Buscar por Steam ID ou nome..." oninput="filterPlayers()">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openPlayerModal()">+ Adicionar Player</button>
+        </div>
+        <div id="players-history-list" class="players-list">
+          <div class="bec-empty">Nenhum player registrado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Logs -->
+    <div id="logs" class="tab-content">
+      <div class="log-viewer">
+        <div class="log-toolbar">
+          <div class="log-toolbar-left">
+            &#128196; Log de Atividades
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="loadLogs()">&#8635; Atualizar</button>
+            <button class="btn btn-danger btn-sm" onclick="clearLogs()">&#128465; Limpar</button>
+          </div>
+        </div>
+        <div id="log-content" class="log-content">
+          <div class="log-empty">Nenhum log registrado ainda</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Settings -->
+    <div id="settings" class="tab-content">
+      <div class="settings-grid">
+        <div class="settings-card">
+          <div class="settings-card-title">&#9201; Monitoramento</div>
+          <div class="form-group">
+            <label class="form-label">Intervalo de Verificação (segundos)</label>
+            <input type="number" id="settings-check-interval" class="form-input" min="1" max="300" value="5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Máx. Tentativas de Reinício</label>
+            <input type="number" id="settings-max-restarts" class="form-input" min="1" max="100" value="10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cooldown entre Reinícios (segundos)</label>
+            <input type="number" id="settings-cooldown" class="form-input" min="0" max="60" value="3">
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">&#9881; Geral</div>
+          <div class="form-group">
+            <label class="form-label">Máx. Linhas de Log</label>
+            <input type="number" id="settings-max-log" class="form-input" min="50" max="5000" value="500">
+          </div>
+          <div class="form-group">
+            <div class="form-check">
+              <label class="toggle-switch">
+                <input type="checkbox" id="settings-auto-start">
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="form-label" style="margin-bottom:0">Iniciar Monitoramento Automaticamente</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-check">
+              <label class="toggle-switch">
+                <input type="checkbox" id="settings-sound" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="form-label" style="margin-bottom:0">Som ao Reiniciar</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; text-align: right;">
+        <button class="btn btn-primary" onclick="saveSettings()">&#128190; Salvar Configurações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add/Edit Process -->
+  <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="modal-title" class="modal-title">ADICIONAR PROCESSO</span>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nome do Aplicativo *</label>
+        <input type="text" id="form-name" class="form-input" placeholder="Ex: DayZ Server">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          Nome do Processo
+          <button class="btn btn-secondary btn-sm" style="float:right;margin-top:-4px" onclick="openSysProcessModal()">
+            &#128269; Buscar
+          </button>
+        </label>
+        <input type="text" id="form-process-name" class="form-input" placeholder="Ex: DayZServer_x64.exe">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Comando para Iniciar</label>
+        <input type="text" id="form-command" class="form-input" placeholder="Ex: C:\DayZ\DayZServer_x64.exe -config=serverDZ.cfg">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Diretório de Trabalho</label>
+          <input type="text" id="form-working-dir" class="form-input" placeholder="Ex: C:\DayZ\">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Argumentos</label>
+          <input type="text" id="form-arguments" class="form-input" placeholder="Ex: -port=2302">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-check">
+            <label class="toggle-switch">
+              <input type="checkbox" id="form-enabled" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <label class="form-label" style="margin-bottom:0">Monitorar</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-check">
+            <label class="toggle-switch">
+              <input type="checkbox" id="form-auto-restart" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <label class="form-label" style="margin-bottom:0">Auto-Restart</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveProcess()">&#128190; Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: System Process Browser -->
+  <div id="sys-process-modal" class="modal-overlay" onclick="if(event.target===this)closeSysProcessModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">PROCESSOS DO SISTEMA</span>
+        <button class="modal-close" onclick="closeSysProcessModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <input type="text" id="sys-process-search" class="form-input"
+               placeholder="Buscar processo..." oninput="browseSystemProcesses()">
+      </div>
+      <div id="sys-process-list" class="sys-process-list">
+        <div class="log-empty">Carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Ban -->
+  <div id="ban-modal" class="modal-overlay" onclick="if(event.target===this)closeBanModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">ADICIONAR BAN</span>
+        <button class="modal-close" onclick="closeBanModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Steam ID *</label>
+        <input type="text" id="ban-steam-id" class="form-input" placeholder="76561198XXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome do Player</label>
+        <input type="text" id="ban-player-name" class="form-input" placeholder="Nome do jogador">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo</label>
+        <input type="text" id="ban-reason" class="form-input" placeholder="Motivo do ban">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duração (minutos, 0 = permanente)</label>
+        <input type="number" id="ban-duration" class="form-input" min="0" value="0">
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-secondary" onclick="closeBanModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="saveBan()">&#128683; Banir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Player -->
+  <div id="player-modal" class="modal-overlay" onclick="if(event.target===this)closePlayerModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">ADICIONAR PLAYER</span>
+        <button class="modal-close" onclick="closePlayerModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Steam ID *</label>
+        <input type="text" id="player-steam-id" class="form-input" placeholder="76561198XXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome do Player</label>
+        <input type="text" id="player-name-input" class="form-input" placeholder="Nome do jogador">
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-secondary" onclick="closePlayerModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="savePlayer()">&#128190; Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
