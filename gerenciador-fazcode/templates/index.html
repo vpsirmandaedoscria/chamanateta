@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciador Fazcode</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/icon.svg">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <img src="/static/img/icon.svg" alt="Fazcode" class="header-logo">
+      <div>
+        <div class="header-title">GERENCIADOR FAZCODE</div>
+        <div class="header-subtitle">Process Monitor &amp; Auto-Restart</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="monitor-status" class="monitor-status inactive">
+        <span class="status-dot"></span> PARADO
+      </div>
+      <button id="btn-start-monitor" class="btn btn-success btn-sm" onclick="startMonitoring()">
+        &#9654; Iniciar
+      </button>
+      <button id="btn-stop-monitor" class="btn btn-danger btn-sm" onclick="stopMonitoring()" style="display:none">
+        &#9632; Parar
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="main-content">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Total Processos</div>
+        <div class="stat-value" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Rodando</div>
+        <div class="stat-value success" id="stat-running">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Parados</div>
+        <div class="stat-value error" id="stat-stopped">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Reinícios</div>
+        <div class="stat-value" id="stat-restarts">0</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="processes">&#9881; Processos</button>
+      <button class="tab" data-tab="logs">&#9776; Logs</button>
+      <button class="tab" data-tab="settings">&#9881; Configurações</button>
+    </div>
+
+    <!-- Tab: Processes -->
+    <div id="processes" class="tab-content active">
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="search-input" placeholder="Buscar processo..." oninput="renderProcesses()">
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          &#43; Adicionar
+        </button>
+      </div>
+      <div id="process-list" class="process-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">&#9881;</div>
+          <div class="empty-state-text">Nenhum processo monitorado</div>
+          <div class="empty-state-sub">Clique em "Adicionar" para monitorar um processo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Logs -->
+    <div id="logs" class="tab-content">
+      <div class="log-viewer">
+        <div class="log-toolbar">
+          <div class="log-toolbar-left">
+            &#128196; Log de Atividades
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="loadLogs()">&#8635; Atualizar</button>
+            <button class="btn btn-danger btn-sm" onclick="clearLogs()">&#128465; Limpar</button>
+          </div>
+        </div>
+        <div id="log-content" class="log-content">
+          <div class="log-empty">Nenhum log registrado ainda</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Settings -->
+    <div id="settings" class="tab-content">
+      <div class="settings-grid">
+        <div class="settings-card">
+          <div class="settings-card-title">&#9201; Monitoramento</div>
+          <div class="form-group">
+            <label class="form-label">Intervalo de Verificação (segundos)</label>
+            <input type="number" id="settings-check-interval" class="form-input" min="1" max="300" value="5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Máx. Tentativas de Reinício</label>
+            <input type="number" id="settings-max-restarts" class="form-input" min="1" max="100" value="10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cooldown entre Reinícios (segundos)</label>
+            <input type="number" id="settings-cooldown" class="form-input" min="0" max="60" value="3">
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-title">&#9881; Geral</div>
+          <div class="form-group">
+            <label class="form-label">Máx. Linhas de Log</label>
+            <input type="number" id="settings-max-log" class="form-input" min="50" max="5000" value="500">
+          </div>
+          <div class="form-group">
+            <div class="form-check">
+              <label class="toggle-switch">
+                <input type="checkbox" id="settings-auto-start">
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="form-label" style="margin-bottom:0">Iniciar Monitoramento Automaticamente</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-check">
+              <label class="toggle-switch">
+                <input type="checkbox" id="settings-sound" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="form-label" style="margin-bottom:0">Som ao Reiniciar</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; text-align: right;">
+        <button class="btn btn-primary" onclick="saveSettings()">&#128190; Salvar Configurações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add/Edit Process -->
+  <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="modal-title" class="modal-title">ADICIONAR PROCESSO</span>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nome do Aplicativo *</label>
+        <input type="text" id="form-name" class="form-input" placeholder="Ex: DayZ Server">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          Nome do Processo
+          <button class="btn btn-secondary btn-sm" style="float:right;margin-top:-4px" onclick="openSysProcessModal()">
+            &#128269; Buscar
+          </button>
+        </label>
+        <input type="text" id="form-process-name" class="form-input" placeholder="Ex: DayZServer_x64.exe">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Comando para Iniciar</label>
+        <input type="text" id="form-command" class="form-input" placeholder="Ex: C:\DayZ\DayZServer_x64.exe -config=serverDZ.cfg">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Diretório de Trabalho</label>
+          <input type="text" id="form-working-dir" class="form-input" placeholder="Ex: C:\DayZ\">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Argumentos</label>
+          <input type="text" id="form-arguments" class="form-input" placeholder="Ex: -port=2302">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-check">
+            <label class="toggle-switch">
+              <input type="checkbox" id="form-enabled" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <label class="form-label" style="margin-bottom:0">Monitorar</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-check">
+            <label class="toggle-switch">
+              <input type="checkbox" id="form-auto-restart" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <label class="form-label" style="margin-bottom:0">Auto-Restart</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveProcess()">&#128190; Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: System Process Browser -->
+  <div id="sys-process-modal" class="modal-overlay" onclick="if(event.target===this)closeSysProcessModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">PROCESSOS DO SISTEMA</span>
+        <button class="modal-close" onclick="closeSysProcessModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <input type="text" id="sys-process-search" class="form-input"
+               placeholder="Buscar processo..." oninput="browseSystemProcesses()">
+      </div>
+      <div id="sys-process-list" class="sys-process-list">
+        <div class="log-empty">Carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

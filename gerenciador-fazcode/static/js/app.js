@@ -1,0 +1,476 @@
+/**
+ * Gerenciador Fazcode - Frontend Application
+ * Dark/Pink Neon Process Manager
+ */
+
+const API = {
+  async get(url) {
+    const res = await fetch(url);
+    return res.json();
+  },
+  async post(url, data = {}) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  async put(url, data = {}) {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  async del(url) {
+    const res = await fetch(url, { method: 'DELETE' });
+    return res.json();
+  },
+};
+
+// State
+let processes = [];
+let settings = {};
+let monitoringActive = false;
+let refreshInterval = null;
+let editingProcessId = null;
+
+// DOM elements
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  initTabs();
+  loadAll();
+  startAutoRefresh();
+});
+
+function initTabs() {
+  $$('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      $$('.tab').forEach((t) => t.classList.remove('active'));
+      $$('.tab-content').forEach((c) => c.classList.remove('active'));
+      tab.classList.add('active');
+      $(`#${tab.dataset.tab}`).classList.add('active');
+
+      if (tab.dataset.tab === 'logs') loadLogs();
+    });
+  });
+}
+
+async function loadAll() {
+  await Promise.all([loadProcesses(), loadSettings(), loadMonitoringStatus()]);
+}
+
+// ===== Processes =====
+async function loadProcesses() {
+  try {
+    processes = await API.get('/api/processes');
+    renderProcesses();
+    updateStats();
+  } catch (e) {
+    console.error('Failed to load processes:', e);
+  }
+}
+
+function renderProcesses() {
+  const list = $('#process-list');
+  const search = $('#search-input')?.value?.toLowerCase() || '';
+
+  const filtered = processes.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search) ||
+      (p.process_name && p.process_name.toLowerCase().includes(search))
+  );
+
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">&#9881;</div>
+        <div class="empty-state-text">Nenhum processo monitorado</div>
+        <div class="empty-state-sub">Clique em "Adicionar" para monitorar um processo</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered
+    .map(
+      (p) => `
+    <div class="process-item" data-id="${p.id}">
+      <div class="process-status-indicator ${p.status || 'unknown'}"></div>
+      <div class="process-info">
+        <div class="process-name">${escHtml(p.name)}</div>
+        <div class="process-detail">
+          ${p.process_name ? `Processo: ${escHtml(p.process_name)}` : ''}
+          ${p.command ? ` &mdash; ${escHtml(p.command.substring(0, 60))}${p.command.length > 60 ? '...' : ''}` : ''}
+        </div>
+      </div>
+      <div class="process-meta">
+        <div class="process-meta-label">Restarts</div>
+        <div class="process-meta-value">${p.restart_count || 0}</div>
+      </div>
+      <div class="process-actions">
+        <button class="btn-icon" onclick="toggleProcess(${p.id}, ${!p.enabled})" title="${p.enabled ? 'Desativar' : 'Ativar'}">
+          ${p.enabled ? '&#9210;' : '&#9211;'}
+        </button>
+        <button class="btn-icon" onclick="manualRestart(${p.id})" title="Reiniciar">&#8635;</button>
+        <button class="btn-icon" onclick="killProcess(${p.id})" title="Parar">&#9632;</button>
+        <button class="btn-icon" onclick="editProcess(${p.id})" title="Editar">&#9998;</button>
+        <button class="btn-icon" onclick="deleteProcess(${p.id})" title="Remover">&#10005;</button>
+      </div>
+    </div>`
+    )
+    .join('');
+}
+
+function updateStats() {
+  const total = processes.length;
+  const running = processes.filter((p) => p.status === 'running').length;
+  const stopped = processes.filter((p) => p.status === 'stopped').length;
+  const restarts = processes.reduce((sum, p) => sum + (p.restart_count || 0), 0);
+
+  $('#stat-total').textContent = total;
+  $('#stat-running').textContent = running;
+  $('#stat-stopped').textContent = stopped;
+  $('#stat-restarts').textContent = restarts;
+}
+
+async function addProcess(data) {
+  try {
+    await API.post('/api/processes', data);
+    await loadProcesses();
+    showToast('Processo adicionado com sucesso', 'success');
+    closeModal();
+  } catch (e) {
+    showToast('Erro ao adicionar processo', 'error');
+  }
+}
+
+async function updateProcess(id, data) {
+  try {
+    await API.put(`/api/processes/${id}`, data);
+    await loadProcesses();
+    showToast('Processo atualizado', 'success');
+    closeModal();
+  } catch (e) {
+    showToast('Erro ao atualizar processo', 'error');
+  }
+}
+
+async function deleteProcess(id) {
+  if (!confirm('Remover este processo da lista de monitoramento?')) return;
+  try {
+    await API.del(`/api/processes/${id}`);
+    await loadProcesses();
+    showToast('Processo removido', 'info');
+  } catch (e) {
+    showToast('Erro ao remover processo', 'error');
+  }
+}
+
+async function manualRestart(id) {
+  try {
+    const res = await API.post(`/api/processes/${id}/restart`);
+    if (res.success) {
+      showToast('Processo reiniciado', 'success');
+    } else {
+      showToast('Falha ao reiniciar processo', 'error');
+    }
+    await loadProcesses();
+  } catch (e) {
+    showToast('Erro ao reiniciar', 'error');
+  }
+}
+
+async function killProcess(id) {
+  try {
+    const res = await API.post(`/api/processes/${id}/kill`);
+    if (res.success) {
+      showToast('Processo encerrado', 'warning');
+    } else {
+      showToast(res.error || 'Processo n\u00e3o encontrado', 'error');
+    }
+    await loadProcesses();
+  } catch (e) {
+    showToast('Erro ao encerrar processo', 'error');
+  }
+}
+
+async function toggleProcess(id, enabled) {
+  await API.put(`/api/processes/${id}`, { enabled });
+  await loadProcesses();
+  showToast(enabled ? 'Monitoramento ativado' : 'Monitoramento desativado', 'info');
+}
+
+// ===== Monitoring =====
+async function loadMonitoringStatus() {
+  try {
+    const data = await API.get('/api/monitoring/status');
+    monitoringActive = data.active;
+    updateMonitoringUI();
+  } catch (e) {
+    console.error('Failed to load monitoring status:', e);
+  }
+}
+
+function updateMonitoringUI() {
+  const statusEl = $('#monitor-status');
+  const btnStart = $('#btn-start-monitor');
+  const btnStop = $('#btn-stop-monitor');
+
+  if (monitoringActive) {
+    statusEl.className = 'monitor-status active';
+    statusEl.innerHTML = '<span class="status-dot"></span> MONITORANDO';
+    btnStart.style.display = 'none';
+    btnStop.style.display = 'inline-flex';
+  } else {
+    statusEl.className = 'monitor-status inactive';
+    statusEl.innerHTML = '<span class="status-dot"></span> PARADO';
+    btnStart.style.display = 'inline-flex';
+    btnStop.style.display = 'none';
+  }
+}
+
+async function startMonitoring() {
+  await API.post('/api/monitoring/start');
+  monitoringActive = true;
+  updateMonitoringUI();
+  showToast('Monitoramento iniciado', 'success');
+}
+
+async function stopMonitoring() {
+  await API.post('/api/monitoring/stop');
+  monitoringActive = false;
+  updateMonitoringUI();
+  showToast('Monitoramento parado', 'warning');
+}
+
+// ===== Settings =====
+async function loadSettings() {
+  try {
+    settings = await API.get('/api/settings');
+    renderSettings();
+  } catch (e) {
+    console.error('Failed to load settings:', e);
+  }
+}
+
+function renderSettings() {
+  const el = $('#settings-check-interval');
+  if (el) el.value = settings.check_interval || 5;
+
+  const maxRestart = $('#settings-max-restarts');
+  if (maxRestart) maxRestart.value = settings.max_restart_attempts || 10;
+
+  const cooldown = $('#settings-cooldown');
+  if (cooldown) cooldown.value = settings.restart_cooldown || 3;
+
+  const maxLog = $('#settings-max-log');
+  if (maxLog) maxLog.value = settings.max_log_lines || 500;
+
+  const autoStart = $('#settings-auto-start');
+  if (autoStart) autoStart.checked = settings.auto_start_monitoring || false;
+
+  const sound = $('#settings-sound');
+  if (sound) sound.checked = settings.sound_on_restart || true;
+}
+
+async function saveSettings() {
+  const data = {
+    check_interval: parseInt($('#settings-check-interval').value) || 5,
+    max_restart_attempts: parseInt($('#settings-max-restarts').value) || 10,
+    restart_cooldown: parseInt($('#settings-cooldown').value) || 3,
+    max_log_lines: parseInt($('#settings-max-log').value) || 500,
+    auto_start_monitoring: $('#settings-auto-start').checked,
+    sound_on_restart: $('#settings-sound').checked,
+  };
+
+  try {
+    await API.put('/api/settings', data);
+    settings = data;
+    showToast('Configura\u00e7\u00f5es salvas', 'success');
+  } catch (e) {
+    showToast('Erro ao salvar configura\u00e7\u00f5es', 'error');
+  }
+}
+
+// ===== Logs =====
+async function loadLogs() {
+  try {
+    const data = await API.get('/api/logs?limit=200');
+    renderLogs(data.logs);
+  } catch (e) {
+    console.error('Failed to load logs:', e);
+  }
+}
+
+function renderLogs(logs) {
+  const container = $('#log-content');
+  if (!logs || logs.length === 0) {
+    container.innerHTML = '<div class="log-empty">Nenhum log registrado ainda</div>';
+    return;
+  }
+
+  container.innerHTML = logs
+    .reverse()
+    .map((line) => {
+      const match = line.match(/\[(.+?)\] \[(.+?)\] (.+)/);
+      if (match) {
+        return `<div class="log-line">
+          <span class="timestamp">${escHtml(match[1])}</span>
+          <span class="level-${match[2]}">[${match[2]}]</span>
+          ${escHtml(match[3])}
+        </div>`;
+      }
+      return `<div class="log-line">${escHtml(line)}</div>`;
+    })
+    .join('');
+
+  container.scrollTop = 0;
+}
+
+async function clearLogs() {
+  if (!confirm('Limpar todos os logs?')) return;
+  await API.del('/api/logs');
+  loadLogs();
+  showToast('Logs limpos', 'info');
+}
+
+// ===== Modal =====
+function openAddModal() {
+  editingProcessId = null;
+  $('#modal-title').textContent = 'ADICIONAR PROCESSO';
+  $('#form-name').value = '';
+  $('#form-process-name').value = '';
+  $('#form-command').value = '';
+  $('#form-working-dir').value = '';
+  $('#form-arguments').value = '';
+  $('#form-enabled').checked = true;
+  $('#form-auto-restart').checked = true;
+  $('#modal-overlay').classList.add('active');
+}
+
+function editProcess(id) {
+  const proc = processes.find((p) => p.id === id);
+  if (!proc) return;
+
+  editingProcessId = id;
+  $('#modal-title').textContent = 'EDITAR PROCESSO';
+  $('#form-name').value = proc.name || '';
+  $('#form-process-name').value = proc.process_name || '';
+  $('#form-command').value = proc.command || '';
+  $('#form-working-dir').value = proc.working_dir || '';
+  $('#form-arguments').value = proc.arguments || '';
+  $('#form-enabled').checked = proc.enabled !== false;
+  $('#form-auto-restart').checked = proc.auto_restart !== false;
+  $('#modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+  $('#modal-overlay').classList.remove('active');
+  editingProcessId = null;
+}
+
+function saveProcess() {
+  const data = {
+    name: $('#form-name').value.trim(),
+    process_name: $('#form-process-name').value.trim(),
+    command: $('#form-command').value.trim(),
+    working_dir: $('#form-working-dir').value.trim(),
+    arguments: $('#form-arguments').value.trim(),
+    enabled: $('#form-enabled').checked,
+    auto_restart: $('#form-auto-restart').checked,
+  };
+
+  if (!data.name) {
+    showToast('Nome \u00e9 obrigat\u00f3rio', 'error');
+    return;
+  }
+
+  if (editingProcessId) {
+    updateProcess(editingProcessId, data);
+  } else {
+    addProcess(data);
+  }
+}
+
+// ===== System Processes Browser =====
+async function browseSystemProcesses() {
+  const search = $('#sys-process-search')?.value || '';
+  try {
+    const procs = await API.get(`/api/system/processes?search=${encodeURIComponent(search)}`);
+    const container = $('#sys-process-list');
+    container.innerHTML = procs
+      .map(
+        (p) => `
+      <div class="sys-process-item" onclick="selectSystemProcess('${escHtml(p.name)}', '${escHtml(p.exe)}')">
+        <span class="proc-name">${escHtml(p.name)}</span>
+        <span class="proc-mem">${p.memory_mb} MB</span>
+      </div>`
+      )
+      .join('');
+  } catch (e) {
+    console.error('Failed to browse system processes:', e);
+  }
+}
+
+function selectSystemProcess(name, exe) {
+  $('#form-process-name').value = name;
+  if (exe) $('#form-command').value = exe;
+  $('#sys-process-modal').classList.remove('active');
+}
+
+function openSysProcessModal() {
+  $('#sys-process-modal').classList.add('active');
+  browseSystemProcesses();
+}
+
+function closeSysProcessModal() {
+  $('#sys-process-modal').classList.remove('active');
+}
+
+// ===== Auto Refresh =====
+function startAutoRefresh() {
+  refreshInterval = setInterval(() => {
+    loadProcesses();
+    loadMonitoringStatus();
+  }, 3000);
+}
+
+// ===== Toast Notifications =====
+function showToast(message, type = 'info') {
+  const container = $('#toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+
+  const icons = {
+    success: '&#10003;',
+    error: '&#10007;',
+    warning: '&#9888;',
+    info: '&#8505;',
+  };
+
+  toast.innerHTML = `
+    <span style="font-size:16px">${icons[type] || icons.info}</span>
+    <span>${escHtml(message)}</span>
+  `;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100px)';
+    toast.style.transition = 'all 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// ===== Helpers =====
+function escHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
