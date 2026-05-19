@@ -12,14 +12,19 @@ python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERRO] Python nao encontrado! Instale Python 3 primeiro.
     echo Download: https://www.python.org/downloads/
+    echo.
+    echo IMPORTANTE: Na instalacao do Python, marque a opcao
+    echo "Add Python to PATH"
     pause
     exit /b 1
 )
 
 echo [1/4] Instalando dependencias...
-pip install flask psutil pyinstaller
+python -m pip install --upgrade pip
+python -m pip install flask psutil pyinstaller
 if errorlevel 1 (
     echo [ERRO] Falha ao instalar dependencias.
+    echo Tente rodar como Administrador (clique direito no .bat e "Executar como administrador")
     pause
     exit /b 1
 )
@@ -30,7 +35,7 @@ echo [2/4] Preparando arquivos...
 :: Cria o spec do PyInstaller com dados incluidos
 echo.
 echo [3/4] Gerando executavel com PyInstaller...
-pyinstaller --noconfirm --onefile --windowed ^
+python -m PyInstaller --noconfirm --onefile --windowed ^
     --name "GerenciadorFazcode" ^
     --icon "static\img\icon.ico" ^
     --add-data "templates;templates" ^
@@ -43,7 +48,7 @@ pyinstaller --noconfirm --onefile --windowed ^
 if errorlevel 1 (
     echo.
     echo [AVISO] Tentando sem icone .ico ...
-    pyinstaller --noconfirm --onefile --windowed ^
+    python -m PyInstaller --noconfirm --onefile --windowed ^
         --name "GerenciadorFazcode" ^
         --add-data "templates;templates" ^
         --add-data "static;static" ^
