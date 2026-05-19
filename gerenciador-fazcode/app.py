@@ -6,18 +6,35 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 
 import psutil
 from flask import Flask, jsonify, render_template, request
 
-app = Flask(__name__)
 
-DATA_DIR = Path(__file__).parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and PyInstaller."""
+    if getattr(sys, "frozen", False):
+        base_path = Path(sys._MEIPASS)
+    else:
+        base_path = Path(__file__).parent
+    return str(base_path / relative_path)
+
+
+if getattr(sys, "frozen", False):
+    template_folder = resource_path("templates")
+    static_folder = resource_path("static")
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+else:
+    app = Flask(__name__)
+
+DATA_DIR = Path(os.path.expanduser("~")) / "GerenciadorFazcode" if getattr(sys, "frozen", False) else Path(__file__).parent / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 SETTINGS_FILE = DATA_DIR / "settings.json"
 PROCESSES_FILE = DATA_DIR / "processes.json"
 LOG_FILE = DATA_DIR / "activity.log"
@@ -449,5 +466,11 @@ def list_system_processes():
 
 if __name__ == "__main__":
     add_log("Gerenciador Fazcode initialized", "INFO")
-    print("\n  🚀 Gerenciador Fazcode running at http://localhost:5000\n")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = 5000
+    print(f"\n  Gerenciador Fazcode running at http://localhost:{port}\n")
+
+    if getattr(sys, "frozen", False):
+        threading.Timer(1.5, lambda: webbrowser.open(f"http://localhost:{port}")).start()
+        app.run(host="0.0.0.0", port=port, debug=False)
+    else:
+        app.run(host="0.0.0.0", port=port, debug=True)
