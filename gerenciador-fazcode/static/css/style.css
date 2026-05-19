@@ -111,13 +111,11 @@ body::before {
 }
 
 .header-title {
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Orbitron', 'Segoe UI', Arial, sans-serif;
   font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--pink-neon), var(--pink-light));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: none;
+  color: var(--pink-neon);
+  text-shadow: 0 0 10px var(--pink-glow);
   letter-spacing: 2px;
 }
 
@@ -293,22 +291,18 @@ body::before {
 }
 
 .stat-value {
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Orbitron', 'Segoe UI', Arial, sans-serif;
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--pink-neon), var(--pink-light));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--pink-neon);
 }
 
 .stat-value.success { 
-  background: linear-gradient(135deg, #00cc6a, var(--success));
-  -webkit-background-clip: text;
+  color: var(--success);
 }
 
 .stat-value.error { 
-  background: linear-gradient(135deg, #cc2244, var(--error));
-  -webkit-background-clip: text;
+  color: var(--error);
 }
 
 /* ===== Tabs ===== */
