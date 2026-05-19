@@ -57,12 +57,13 @@ function initTabs() {
       $(`#${tab.dataset.tab}`).classList.add('active');
 
       if (tab.dataset.tab === 'logs') loadLogs();
+      if (tab.dataset.tab === 'bec') loadBec();
     });
   });
 }
 
 async function loadAll() {
-  await Promise.all([loadProcesses(), loadSettings(), loadMonitoringStatus()]);
+  await Promise.all([loadProcesses(), loadSettings(), loadMonitoringStatus(), loadBec()]);
 }
 
 // ===== Processes =====
@@ -337,6 +338,215 @@ async function clearLogs() {
   await API.del('/api/logs');
   loadLogs();
   showToast('Logs limpos', 'info');
+}
+
+// ===== BEC Scheduler =====
+let becData = {};
+
+async function loadBec() {
+  try {
+    becData = await API.get('/api/bec');
+    renderBec();
+  } catch (e) {
+    console.error('Failed to load BEC data:', e);
+  }
+}
+
+function renderBec() {
+  renderBecTimes();
+  renderBecDays();
+  renderBecWarnings();
+  renderBecKick();
+  renderBecLock();
+  renderBecCustomJobs();
+}
+
+function renderBecTimes() {
+  const container = $('#bec-times-list');
+  if (!container) return;
+  const times = becData.restart_times || [];
+  if (times.length === 0) {
+    container.innerHTML = '<div class="bec-empty">Nenhum horário configurado</div>';
+    return;
+  }
+  container.innerHTML = times.map(t => `
+    <div class="bec-time-item">
+      <span class="bec-time-value">${t}</span>
+      <button class="btn-icon btn-sm" onclick="removeRestartTime('${t}')" title="Remover">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function renderBecDays() {
+  const days = becData.days || [1,2,3,4,5,6,7];
+  for (let i = 1; i <= 7; i++) {
+    const cb = $(`#bec-day-${i}`);
+    if (cb) cb.checked = days.includes(i);
+  }
+}
+
+function renderBecWarnings() {
+  const container = $('#bec-warnings-list');
+  if (!container) return;
+  const warnings = becData.warnings || [];
+  if (warnings.length === 0) {
+    container.innerHTML = '<div class="bec-empty">Nenhum aviso configurado</div>';
+    return;
+  }
+  container.innerHTML = warnings.map((w, i) => `
+    <div class="bec-warning-item">
+      <span class="bec-warn-time">${w.minutes_before} min</span>
+      <input type="text" class="form-input bec-warn-msg-input" value="${escHtml(w.message)}" 
+        onchange="updateWarning(${i}, this.value)">
+      <button class="btn-icon btn-sm" onclick="removeWarning(${i})" title="Remover">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function renderBecKick() {
+  const en = $('#bec-kick-enabled');
+  if (en) en.checked = becData.kick_before_restart !== false;
+  const min = $('#bec-kick-minutes');
+  if (min) min.value = becData.kick_minutes_before || 1;
+  const msg = $('#bec-kick-message');
+  if (msg) msg.value = becData.kick_message || '';
+}
+
+function renderBecLock() {
+  const en = $('#bec-lock-enabled');
+  if (en) en.checked = becData.lock_before_restart !== false;
+  const min = $('#bec-lock-minutes');
+  if (min) min.value = becData.lock_minutes_before || 2;
+  const cmd = $('#bec-shutdown-cmd');
+  if (cmd) cmd.value = becData.shutdown_command || '#shutdown';
+}
+
+function renderBecCustomJobs() {
+  const container = $('#bec-custom-jobs-list');
+  if (!container) return;
+  const jobs = becData.custom_jobs || [];
+  if (jobs.length === 0) {
+    container.innerHTML = '<div class="bec-empty">Nenhum job customizado</div>';
+    return;
+  }
+  container.innerHTML = jobs.map((j, i) => `
+    <div class="bec-custom-job-item">
+      <span class="bec-cj-label">${escHtml(j.label || 'Job ' + i)}</span>
+      <span class="bec-cj-time">${j.time || '00:00:00'}</span>
+      <span class="bec-cj-cmd">${escHtml(j.cmd)}</span>
+      <button class="btn-icon btn-sm" onclick="removeCustomJob(${i})" title="Remover">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+async function addRestartTime() {
+  const input = $('#bec-new-time');
+  const time = input?.value;
+  if (!time) { showToast('Selecione um horário', 'error'); return; }
+  becData = await API.post('/api/bec/restart-times', { time });
+  renderBec();
+  input.value = '';
+  showToast(`Horário ${time} adicionado`, 'success');
+}
+
+async function removeRestartTime(time) {
+  const res = await fetch('/api/bec/restart-times', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ time }),
+  });
+  becData = await res.json();
+  renderBec();
+  showToast(`Horário ${time} removido`, 'info');
+}
+
+async function addWarning() {
+  const minInput = $('#bec-warn-minutes');
+  const msgInput = $('#bec-warn-message');
+  const minutes = parseInt(minInput?.value);
+  const message = msgInput?.value?.trim();
+  if (!minutes || !message) { showToast('Preencha minutos e mensagem', 'error'); return; }
+  becData = await API.post('/api/bec/warnings', { minutes_before: minutes, message });
+  renderBec();
+  minInput.value = '';
+  msgInput.value = '';
+  showToast('Aviso adicionado', 'success');
+}
+
+async function removeWarning(index) {
+  const res = await fetch(`/api/bec/warnings/${index}`, { method: 'DELETE' });
+  becData = await res.json();
+  renderBec();
+  showToast('Aviso removido', 'info');
+}
+
+async function updateWarning(index, message) {
+  becData = await API.put(`/api/bec/warnings/${index}`, { message });
+  showToast('Aviso atualizado', 'success');
+}
+
+async function addCustomJob() {
+  const label = $('#bec-cj-label')?.value?.trim();
+  const time = $('#bec-cj-time')?.value;
+  const cmd = $('#bec-cj-cmd')?.value?.trim();
+  if (!cmd) { showToast('Comando é obrigatório', 'error'); return; }
+  const timeFormatted = time ? time + (time.split(':').length < 3 ? ':00' : '') : '00:00:00';
+  becData = await API.post('/api/bec/custom-jobs', {
+    label: label || 'Custom Job',
+    time: timeFormatted,
+    cmd: cmd,
+    day: '1,2,3,4,5,6,7',
+    loop: 0,
+    cmdtype: 0,
+  });
+  renderBec();
+  $('#bec-cj-label').value = '';
+  $('#bec-cj-time').value = '';
+  $('#bec-cj-cmd').value = '';
+  showToast('Job customizado adicionado', 'success');
+}
+
+async function removeCustomJob(index) {
+  const res = await fetch(`/api/bec/custom-jobs/${index}`, { method: 'DELETE' });
+  becData = await res.json();
+  renderBec();
+  showToast('Job removido', 'info');
+}
+
+async function saveBecSettings() {
+  const days = [];
+  for (let i = 1; i <= 7; i++) {
+    if ($(`#bec-day-${i}`)?.checked) days.push(i);
+  }
+  const data = {
+    days: days,
+    kick_before_restart: $('#bec-kick-enabled')?.checked || false,
+    kick_minutes_before: parseInt($('#bec-kick-minutes')?.value) || 1,
+    kick_message: $('#bec-kick-message')?.value || '',
+    lock_before_restart: $('#bec-lock-enabled')?.checked || false,
+    lock_minutes_before: parseInt($('#bec-lock-minutes')?.value) || 2,
+    shutdown_command: $('#bec-shutdown-cmd')?.value || '#shutdown',
+  };
+  becData = await API.put('/api/bec', data);
+  showToast('Configurações BEC salvas', 'success');
+}
+
+async function previewXml() {
+  const container = $('#bec-xml-preview');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/bec/preview');
+    const xml = await res.text();
+    container.textContent = xml;
+    container.style.display = container.style.display === 'none' ? 'block' : 'none';
+  } catch (e) {
+    showToast('Erro ao carregar preview', 'error');
+  }
+}
+
+function exportXml() {
+  window.location.href = '/api/bec/export';
+  showToast('Exportando scheduler.xml...', 'success');
 }
 
 // ===== Modal =====

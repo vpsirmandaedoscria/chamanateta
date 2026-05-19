@@ -830,3 +830,210 @@ body::before {
   .header { padding: 0 12px; }
   .main-content { padding: 12px; }
 }
+
+/* ===== BEC Scheduler ===== */
+.bec-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bec-times-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bec-time-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  transition: all 0.2s;
+}
+
+.bec-time-item:hover {
+  border-color: var(--pink-neon);
+  box-shadow: 0 0 10px var(--pink-glow);
+}
+
+.bec-time-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--pink-neon);
+  text-shadow: 0 0 8px var(--pink-glow);
+}
+
+.bec-add-time {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.bec-days-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bec-day-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bec-day-check:hover {
+  border-color: var(--border-hover);
+}
+
+.bec-day-check input[type="checkbox"] {
+  accent-color: var(--pink-neon);
+  width: 16px;
+  height: 16px;
+}
+
+.bec-day-check:has(input:checked) {
+  border-color: var(--pink-neon);
+  color: var(--pink-neon);
+  box-shadow: 0 0 8px var(--pink-glow);
+}
+
+.bec-warnings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bec-warning-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  transition: all 0.2s;
+}
+
+.bec-warning-item:hover {
+  border-color: var(--border-hover);
+}
+
+.bec-warn-time {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffaa00;
+  min-width: 70px;
+  text-align: center;
+  padding: 4px 8px;
+  background: rgba(255, 170, 0, 0.1);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.bec-warn-msg-input {
+  flex: 1 !important;
+  font-size: 13px !important;
+  padding: 6px 10px !important;
+}
+
+.bec-add-warning {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.bec-custom-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bec-custom-job-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  transition: all 0.2s;
+}
+
+.bec-custom-job-item:hover {
+  border-color: var(--border-hover);
+}
+
+.bec-cj-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 120px;
+}
+
+.bec-cj-time {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: var(--pink-light);
+  min-width: 80px;
+}
+
+.bec-cj-cmd {
+  flex: 1;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bec-add-custom-job {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.bec-xml-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.bec-xml-preview {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+  white-space: pre;
+}
+
+.bec-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 12px;
+  text-align: center;
+}

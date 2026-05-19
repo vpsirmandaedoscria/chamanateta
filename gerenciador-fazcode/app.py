@@ -10,11 +10,14 @@ import sys
 import threading
 import time
 import webbrowser
+import xml.etree.ElementTree as ET
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
+from xml.dom import minidom
 
 import psutil
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_file
 
 
 def resource_path(relative_path):
@@ -37,6 +40,7 @@ DATA_DIR = Path(os.path.expanduser("~")) / "GerenciadorFazcode" if getattr(sys, 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 SETTINGS_FILE = DATA_DIR / "settings.json"
 PROCESSES_FILE = DATA_DIR / "processes.json"
+BEC_FILE = DATA_DIR / "bec_scheduler.json"
 LOG_FILE = DATA_DIR / "activity.log"
 
 DEFAULT_SETTINGS = {
@@ -462,6 +466,280 @@ def list_system_processes():
 
     procs.sort(key=lambda x: x["name"].lower())
     return jsonify(procs[:100])
+
+
+# ===== BEC Scheduler =====
+
+DEFAULT_BEC = {
+    "restart_times": ["06:00", "12:00", "18:00", "00:00"],
+    "days": [1, 2, 3, 4, 5, 6, 7],
+    "warnings": [
+        {"minutes_before": 30, "message": "SERVIDOR REINICIA EM 30 MINUTOS"},
+        {"minutes_before": 15, "message": "SERVIDOR REINICIA EM 15 MINUTOS"},
+        {"minutes_before": 5, "message": "SERVIDOR REINICIA EM 5 MINUTOS"},
+        {"minutes_before": 3, "message": "SERVIDOR REINICIA EM 3 MINUTOS"},
+        {"minutes_before": 1, "message": "SERVIDOR REINICIA EM 1 MINUTO - SAIA AGORA PARA NAO PERDER SEU GEAR"},
+    ],
+    "kick_before_restart": True,
+    "kick_minutes_before": 1,
+    "kick_message": "Servidor reiniciando! Voce sera reconectado em breve.",
+    "shutdown_command": "#shutdown",
+    "lock_before_restart": True,
+    "lock_minutes_before": 2,
+    "custom_jobs": [],
+}
+
+DAY_NAMES = {1: "Segunda", 2: "Terca", 3: "Quarta", 4: "Quinta", 5: "Sexta", 6: "Sabado", 7: "Domingo"}
+
+
+def subtract_minutes(time_str, minutes):
+    """Subtract minutes from HH:MM time, returns HH:MM:SS."""
+    h, m = map(int, time_str.split(":"))
+    total = h * 60 + m - minutes
+    if total < 0:
+        total += 1440
+    new_h = (total // 60) % 24
+    new_m = total % 60
+    return f"{new_h:02d}:{new_m:02d}:00"
+
+
+def generate_bec_xml(bec_data):
+    """Generate BEC scheduler.xml from config."""
+    root = ET.Element("Scheduler")
+    job_id = 0
+    days_str = ",".join(str(d) for d in sorted(bec_data.get("days", [1, 2, 3, 4, 5, 6, 7])))
+
+    for restart_time in bec_data.get("restart_times", []):
+        warnings = sorted(bec_data.get("warnings", []), key=lambda w: w["minutes_before"], reverse=True)
+
+        # Warning messages
+        for warning in warnings:
+            job = ET.SubElement(root, "job", id=str(job_id))
+            ET.SubElement(job, "time").text = subtract_minutes(restart_time, warning["minutes_before"])
+            ET.SubElement(job, "delay").text = "000000"
+            ET.SubElement(job, "day").text = days_str
+            ET.SubElement(job, "loop").text = "0"
+            ET.SubElement(job, "cmd").text = f"say -1 {warning['message']}"
+            ET.SubElement(job, "cmdtype").text = "0"
+            job_id += 1
+
+        # Lock server before restart
+        if bec_data.get("lock_before_restart", False):
+            lock_mins = bec_data.get("lock_minutes_before", 2)
+            job = ET.SubElement(root, "job", id=str(job_id))
+            ET.SubElement(job, "time").text = subtract_minutes(restart_time, lock_mins)
+            ET.SubElement(job, "delay").text = "000000"
+            ET.SubElement(job, "day").text = days_str
+            ET.SubElement(job, "loop").text = "0"
+            ET.SubElement(job, "cmd").text = "#lock"
+            ET.SubElement(job, "cmdtype").text = "0"
+            job_id += 1
+
+        # Kick all players before restart
+        if bec_data.get("kick_before_restart", False):
+            kick_mins = bec_data.get("kick_minutes_before", 1)
+            kick_msg = bec_data.get("kick_message", "Servidor reiniciando!")
+            job = ET.SubElement(root, "job", id=str(job_id))
+            ET.SubElement(job, "time").text = subtract_minutes(restart_time, kick_mins)
+            ET.SubElement(job, "delay").text = "000000"
+            ET.SubElement(job, "day").text = days_str
+            ET.SubElement(job, "loop").text = "0"
+            ET.SubElement(job, "cmd").text = f"kick -1 {kick_msg}"
+            ET.SubElement(job, "cmdtype").text = "0"
+            job_id += 1
+
+        # Shutdown/Restart command
+        shutdown_cmd = bec_data.get("shutdown_command", "#shutdown")
+        job = ET.SubElement(root, "job", id=str(job_id))
+        ET.SubElement(job, "time").text = f"{restart_time}:00"
+        ET.SubElement(job, "delay").text = "000000"
+        ET.SubElement(job, "day").text = days_str
+        ET.SubElement(job, "loop").text = "0"
+        ET.SubElement(job, "cmd").text = shutdown_cmd
+        ET.SubElement(job, "cmdtype").text = "0"
+        job_id += 1
+
+        # Unlock after restart (if lock was used)
+        if bec_data.get("lock_before_restart", False):
+            # Unlock 1 minute after restart time
+            h, m = map(int, restart_time.split(":"))
+            unlock_m = m + 1
+            unlock_h = h
+            if unlock_m >= 60:
+                unlock_m -= 60
+                unlock_h = (unlock_h + 1) % 24
+            job = ET.SubElement(root, "job", id=str(job_id))
+            ET.SubElement(job, "time").text = f"{unlock_h:02d}:{unlock_m:02d}:00"
+            ET.SubElement(job, "delay").text = "000000"
+            ET.SubElement(job, "day").text = days_str
+            ET.SubElement(job, "loop").text = "0"
+            ET.SubElement(job, "cmd").text = "#unlock"
+            ET.SubElement(job, "cmdtype").text = "0"
+            job_id += 1
+
+    # Custom jobs
+    for custom in bec_data.get("custom_jobs", []):
+        job = ET.SubElement(root, "job", id=str(job_id))
+        ET.SubElement(job, "time").text = custom.get("time", "00:00:00")
+        ET.SubElement(job, "delay").text = custom.get("delay", "000000")
+        ET.SubElement(job, "day").text = custom.get("day", days_str)
+        ET.SubElement(job, "loop").text = str(custom.get("loop", 0))
+        ET.SubElement(job, "cmd").text = custom.get("cmd", "")
+        ET.SubElement(job, "cmdtype").text = str(custom.get("cmdtype", 0))
+        job_id += 1
+
+    rough_string = ET.tostring(root, encoding="unicode")
+    parsed = minidom.parseString(rough_string)
+    return parsed.toprettyxml(indent="    ", encoding=None)
+
+
+@app.route("/api/bec", methods=["GET"])
+def get_bec():
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    merged = {**DEFAULT_BEC, **bec}
+    return jsonify(merged)
+
+
+@app.route("/api/bec", methods=["PUT"])
+def update_bec():
+    data = request.json
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    bec.update(data)
+    save_json(BEC_FILE, bec)
+    add_log("BEC Scheduler atualizado", "INFO")
+    return jsonify(bec)
+
+
+@app.route("/api/bec/restart-times", methods=["POST"])
+def add_restart_time():
+    data = request.json
+    time_val = data.get("time", "")
+    if not time_val:
+        return jsonify({"error": "Time is required"}), 400
+
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    times = bec.get("restart_times", [])
+    if time_val not in times:
+        times.append(time_val)
+        times.sort()
+        bec["restart_times"] = times
+        save_json(BEC_FILE, bec)
+        add_log(f"Restart time {time_val} adicionado", "INFO")
+    return jsonify(bec)
+
+
+@app.route("/api/bec/restart-times", methods=["DELETE"])
+def remove_restart_time():
+    data = request.json
+    time_val = data.get("time", "")
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    times = bec.get("restart_times", [])
+    if time_val in times:
+        times.remove(time_val)
+        bec["restart_times"] = times
+        save_json(BEC_FILE, bec)
+        add_log(f"Restart time {time_val} removido", "INFO")
+    return jsonify(bec)
+
+
+@app.route("/api/bec/warnings", methods=["POST"])
+def add_warning():
+    data = request.json
+    minutes = data.get("minutes_before")
+    message = data.get("message", "")
+    if minutes is None or not message:
+        return jsonify({"error": "minutes_before and message required"}), 400
+
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    warnings = bec.get("warnings", [])
+    warnings.append({"minutes_before": int(minutes), "message": message})
+    warnings.sort(key=lambda w: w["minutes_before"], reverse=True)
+    bec["warnings"] = warnings
+    save_json(BEC_FILE, bec)
+    add_log(f"Warning {minutes}min adicionado", "INFO")
+    return jsonify(bec)
+
+
+@app.route("/api/bec/warnings/<int:index>", methods=["DELETE"])
+def remove_warning(index):
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    warnings = bec.get("warnings", [])
+    if 0 <= index < len(warnings):
+        removed = warnings.pop(index)
+        bec["warnings"] = warnings
+        save_json(BEC_FILE, bec)
+        add_log(f"Warning {removed['minutes_before']}min removido", "INFO")
+    return jsonify(bec)
+
+
+@app.route("/api/bec/warnings/<int:index>", methods=["PUT"])
+def update_warning(index):
+    data = request.json
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    warnings = bec.get("warnings", [])
+    if 0 <= index < len(warnings):
+        if "minutes_before" in data:
+            warnings[index]["minutes_before"] = int(data["minutes_before"])
+        if "message" in data:
+            warnings[index]["message"] = data["message"]
+        warnings.sort(key=lambda w: w["minutes_before"], reverse=True)
+        bec["warnings"] = warnings
+        save_json(BEC_FILE, bec)
+    return jsonify(bec)
+
+
+@app.route("/api/bec/custom-jobs", methods=["POST"])
+def add_custom_job():
+    data = request.json
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    jobs = bec.get("custom_jobs", [])
+    new_job = {
+        "time": data.get("time", "00:00:00"),
+        "delay": data.get("delay", "000000"),
+        "day": data.get("day", "1,2,3,4,5,6,7"),
+        "loop": data.get("loop", 0),
+        "cmd": data.get("cmd", ""),
+        "cmdtype": data.get("cmdtype", 0),
+        "label": data.get("label", "Custom Job"),
+    }
+    jobs.append(new_job)
+    bec["custom_jobs"] = jobs
+    save_json(BEC_FILE, bec)
+    add_log(f"Custom job '{new_job['label']}' adicionado", "INFO")
+    return jsonify(bec)
+
+
+@app.route("/api/bec/custom-jobs/<int:index>", methods=["DELETE"])
+def remove_custom_job(index):
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    jobs = bec.get("custom_jobs", [])
+    if 0 <= index < len(jobs):
+        removed = jobs.pop(index)
+        bec["custom_jobs"] = jobs
+        save_json(BEC_FILE, bec)
+        add_log(f"Custom job '{removed.get('label', '')}' removido", "INFO")
+    return jsonify(bec)
+
+
+@app.route("/api/bec/preview", methods=["GET"])
+def preview_bec_xml():
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    xml_content = generate_bec_xml(bec)
+    return xml_content, 200, {"Content-Type": "application/xml; charset=utf-8"}
+
+
+@app.route("/api/bec/export", methods=["GET"])
+def export_bec_xml():
+    bec = load_json(BEC_FILE, DEFAULT_BEC)
+    xml_content = generate_bec_xml(bec)
+    buffer = BytesIO(xml_content.encode("utf-8"))
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype="application/xml",
+        as_attachment=True,
+        download_name="scheduler.xml",
+    )
 
 
 if __name__ == "__main__":

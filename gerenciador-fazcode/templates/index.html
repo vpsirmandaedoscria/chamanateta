@@ -57,6 +57,7 @@
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" data-tab="processes">&#9881; Processos</button>
+      <button class="tab" data-tab="bec">&#128338; BEC Scheduler</button>
       <button class="tab" data-tab="logs">&#9776; Logs</button>
       <button class="tab" data-tab="settings">&#9881; Configurações</button>
     </div>
@@ -77,6 +78,119 @@
           <div class="empty-state-icon">&#9881;</div>
           <div class="empty-state-text">Nenhum processo monitorado</div>
           <div class="empty-state-sub">Clique em "Adicionar" para monitorar um processo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: BEC Scheduler -->
+    <div id="bec" class="tab-content">
+      <div class="bec-container">
+        <!-- Restart Times -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128338; Horários de Restart</div>
+          <div class="bec-restart-times">
+            <div id="bec-times-list" class="bec-times-grid"></div>
+            <div class="bec-add-time">
+              <input type="time" id="bec-new-time" class="form-input" style="width:140px">
+              <button class="btn btn-primary btn-sm" onclick="addRestartTime()">+ Adicionar Horário</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Days -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128197; Dias da Semana</div>
+          <div class="bec-days-grid">
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-1" checked onchange="saveBecSettings()"><span>Seg</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-2" checked onchange="saveBecSettings()"><span>Ter</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-3" checked onchange="saveBecSettings()"><span>Qua</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-4" checked onchange="saveBecSettings()"><span>Qui</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-5" checked onchange="saveBecSettings()"><span>Sex</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-6" checked onchange="saveBecSettings()"><span>Sab</span></label>
+            <label class="bec-day-check"><input type="checkbox" id="bec-day-7" checked onchange="saveBecSettings()"><span>Dom</span></label>
+          </div>
+        </div>
+
+        <!-- Warning Messages -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128172; Mensagens de Aviso</div>
+          <div id="bec-warnings-list" class="bec-warnings-list"></div>
+          <div class="bec-add-warning">
+            <input type="number" id="bec-warn-minutes" class="form-input" placeholder="Min antes" min="1" max="120" style="width:100px">
+            <input type="text" id="bec-warn-message" class="form-input" placeholder="Mensagem de aviso..." style="flex:1">
+            <button class="btn btn-primary btn-sm" onclick="addWarning()">+ Aviso</button>
+          </div>
+        </div>
+
+        <!-- Kick & Lock Settings -->
+        <div class="settings-grid" style="margin-top:0">
+          <div class="settings-card">
+            <div class="settings-card-title">&#128683; Kick antes do Restart</div>
+            <div class="form-group">
+              <div class="form-check">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="bec-kick-enabled" checked onchange="saveBecSettings()">
+                  <span class="toggle-slider"></span>
+                </label>
+                <label class="form-label" style="margin-bottom:0">Ativar Kick</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minutos antes do restart</label>
+              <input type="number" id="bec-kick-minutes" class="form-input" min="1" max="30" value="1" onchange="saveBecSettings()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mensagem do Kick</label>
+              <input type="text" id="bec-kick-message" class="form-input" value="Servidor reiniciando! Voce sera reconectado em breve." onchange="saveBecSettings()">
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <div class="settings-card-title">&#128274; Lock & Shutdown</div>
+            <div class="form-group">
+              <div class="form-check">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="bec-lock-enabled" checked onchange="saveBecSettings()">
+                  <span class="toggle-slider"></span>
+                </label>
+                <label class="form-label" style="margin-bottom:0">Trancar Servidor antes do Restart</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Trancar X min antes</label>
+              <input type="number" id="bec-lock-minutes" class="form-input" min="1" max="30" value="2" onchange="saveBecSettings()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Comando de Shutdown</label>
+              <select id="bec-shutdown-cmd" class="form-input" onchange="saveBecSettings()">
+                <option value="#shutdown">#shutdown</option>
+                <option value="#restart">#restart</option>
+                <option value="#shutdown">#shutdown (padrão)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Jobs -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128295; Jobs Customizados</div>
+          <div id="bec-custom-jobs-list" class="bec-custom-jobs-list"></div>
+          <div class="bec-add-custom-job">
+            <input type="text" id="bec-cj-label" class="form-input" placeholder="Nome do Job" style="width:150px">
+            <input type="time" id="bec-cj-time" class="form-input" style="width:120px" step="1">
+            <input type="text" id="bec-cj-cmd" class="form-input" placeholder="Comando BEC (ex: say -1 Mensagem)" style="flex:1">
+            <button class="btn btn-primary btn-sm" onclick="addCustomJob()">+ Job</button>
+          </div>
+        </div>
+
+        <!-- XML Preview & Export -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128196; XML Preview & Exportar</div>
+          <div class="bec-xml-actions">
+            <button class="btn btn-secondary" onclick="previewXml()">&#128065; Visualizar XML</button>
+            <button class="btn btn-primary" onclick="exportXml()">&#128190; Exportar scheduler.xml</button>
+          </div>
+          <pre id="bec-xml-preview" class="bec-xml-preview" style="display:none"></pre>
         </div>
       </div>
     </div>
