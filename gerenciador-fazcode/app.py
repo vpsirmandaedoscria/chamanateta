@@ -1,10 +1,15 @@
 """
 Gerenciador Fazcode - Process Manager & Restart on Crash
 Dark/Pink Neon themed process monitoring and auto-restart tool.
+With BEC Scheduler, RCON Client, Ban Database, and Player Management.
 """
+import hashlib
 import json
 import os
 import signal
+import socket
+import sqlite3
+import struct
 import subprocess
 import sys
 import threading
@@ -41,6 +46,8 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 SETTINGS_FILE = DATA_DIR / "settings.json"
 PROCESSES_FILE = DATA_DIR / "processes.json"
 BEC_FILE = DATA_DIR / "bec_scheduler.json"
+RCON_FILE = DATA_DIR / "rcon_config.json"
+BANS_DB = DATA_DIR / "bans.db"
 LOG_FILE = DATA_DIR / "activity.log"
 
 DEFAULT_SETTINGS = {
@@ -740,6 +747,463 @@ def export_bec_xml():
         as_attachment=True,
         download_name="scheduler.xml",
     )
+
+
+# ===== BattlEye RCON Client =====
+
+DEFAULT_RCON = {
+    "host": "127.0.0.1",
+    "port": 2302,
+    "password": "",
+    "auto_reconnect": True,
+    "kickban_enabled": True,
+}
+
+rcon_lock = threading.Lock()
+rcon_chat_log = []
+MAX_CHAT_LOG = 200
+
+
+class BERconClient:
+    """BattlEye RCon protocol client."""
+
+    def __init__(self, host, port, password):
+        self.host = host
+        self.port = int(port)
+        self.password = password
+        self.sock = None
+        self.seq = 0
+        self.connected = False
+
+    def connect(self):
+        """Connect to BattlEye RCON server."""
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.settimeout(5)
+            # BattlEye login packet: 'B' 'E' + 4-byte checksum + 0xFF + 0x00 + password
+            payload = b"\xff\x00" + self.password.encode("utf-8")
+            crc = self._crc32(payload)
+            packet = b"BE" + struct.pack("<I", crc) + payload
+            self.sock.sendto(packet, (self.host, self.port))
+            data, _ = self.sock.recvfrom(4096)
+            if len(data) >= 8 and data[7] == 0x01:
+                self.connected = True
+                add_log(f"RCON conectado a {self.host}:{self.port}", "SUCCESS")
+                return True
+            add_log(f"RCON login falhou em {self.host}:{self.port}", "ERROR")
+            return False
+        except Exception as e:
+            add_log(f"RCON erro de conexão: {str(e)}", "ERROR")
+            self.connected = False
+            return False
+
+    def send_command(self, command):
+        """Send RCON command and get response."""
+        if not self.connected or not self.sock:
+            return None
+        try:
+            payload = b"\xff\x01" + struct.pack("B", self.seq % 256) + command.encode("utf-8")
+            crc = self._crc32(payload)
+            packet = b"BE" + struct.pack("<I", crc) + payload
+            self.sock.sendto(packet, (self.host, self.port))
+            self.seq += 1
+            self.sock.settimeout(3)
+            data, _ = self.sock.recvfrom(8192)
+            if len(data) > 9:
+                return data[9:].decode("utf-8", errors="replace")
+            return ""
+        except socket.timeout:
+            return ""
+        except Exception as e:
+            add_log(f"RCON send error: {str(e)}", "ERROR")
+            self.connected = False
+            return None
+
+    def disconnect(self):
+        """Disconnect from RCON server."""
+        if self.sock:
+            try:
+                self.sock.close()
+            except Exception:
+                pass
+        self.connected = False
+        self.sock = None
+
+    @staticmethod
+    def _crc32(data):
+        import binascii
+        return binascii.crc32(data) & 0xFFFFFFFF
+
+
+rcon_client = None
+
+
+def get_rcon():
+    """Get or create RCON client."""
+    global rcon_client
+    return rcon_client
+
+
+def init_bans_db():
+    """Initialize SQLite ban database."""
+    conn = sqlite3.connect(str(BANS_DB))
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS bans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            steam_id TEXT NOT NULL,
+            player_name TEXT DEFAULT '',
+            reason TEXT DEFAULT '',
+            banned_at TEXT NOT NULL,
+            banned_by TEXT DEFAULT 'Admin',
+            duration INTEGER DEFAULT 0,
+            active INTEGER DEFAULT 1
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS players_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            steam_id TEXT NOT NULL,
+            player_name TEXT DEFAULT '',
+            last_seen TEXT,
+            ip_address TEXT DEFAULT '',
+            times_seen INTEGER DEFAULT 1
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+init_bans_db()
+
+
+def get_db():
+    conn = sqlite3.connect(str(BANS_DB))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+# ===== RCON API Routes =====
+
+@app.route("/api/rcon/config", methods=["GET"])
+def get_rcon_config():
+    config = load_json(RCON_FILE, DEFAULT_RCON)
+    safe = {**DEFAULT_RCON, **config}
+    safe["password"] = "***" if safe.get("password") else ""
+    safe["connected"] = rcon_client.connected if rcon_client else False
+    return jsonify(safe)
+
+
+@app.route("/api/rcon/config", methods=["PUT"])
+def update_rcon_config():
+    data = request.json
+    config = load_json(RCON_FILE, DEFAULT_RCON)
+    for key in ["host", "port", "password", "auto_reconnect", "kickban_enabled"]:
+        if key in data:
+            config[key] = data[key]
+    save_json(RCON_FILE, config)
+    add_log("RCON config atualizado", "INFO")
+    safe = {**config}
+    safe["password"] = "***" if safe.get("password") else ""
+    return jsonify(safe)
+
+
+@app.route("/api/rcon/connect", methods=["POST"])
+def connect_rcon():
+    global rcon_client
+    config = load_json(RCON_FILE, DEFAULT_RCON)
+    host = config.get("host", "127.0.0.1")
+    port = config.get("port", 2302)
+    password = config.get("password", "")
+    if not password:
+        return jsonify({"error": "Senha RCON não configurada"}), 400
+    with rcon_lock:
+        if rcon_client:
+            rcon_client.disconnect()
+        rcon_client = BERconClient(host, port, password)
+        success = rcon_client.connect()
+    return jsonify({"connected": success})
+
+
+@app.route("/api/rcon/disconnect", methods=["POST"])
+def disconnect_rcon():
+    global rcon_client
+    with rcon_lock:
+        if rcon_client:
+            rcon_client.disconnect()
+            rcon_client = None
+    add_log("RCON desconectado", "INFO")
+    return jsonify({"connected": False})
+
+
+@app.route("/api/rcon/command", methods=["POST"])
+def send_rcon_command():
+    data = request.json
+    cmd = data.get("command", "").strip()
+    if not cmd:
+        return jsonify({"error": "Comando vazio"}), 400
+    client = get_rcon()
+    if not client or not client.connected:
+        return jsonify({"error": "RCON não conectado", "offline": True}), 400
+    with rcon_lock:
+        response = client.send_command(cmd)
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    entry = {"time": timestamp, "cmd": cmd, "response": response or ""}
+    rcon_chat_log.append(entry)
+    if len(rcon_chat_log) > MAX_CHAT_LOG:
+        rcon_chat_log.pop(0)
+    add_log(f"RCON cmd: {cmd}", "INFO")
+    return jsonify({"response": response or "", "time": timestamp})
+
+
+@app.route("/api/rcon/say", methods=["POST"])
+def rcon_say():
+    data = request.json
+    message = data.get("message", "").strip()
+    if not message:
+        return jsonify({"error": "Mensagem vazia"}), 400
+    client = get_rcon()
+    if not client or not client.connected:
+        return jsonify({"error": "RCON não conectado", "offline": True}), 400
+    with rcon_lock:
+        response = client.send_command(f"say -1 {message}")
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    entry = {"time": timestamp, "cmd": f"say -1 {message}", "response": response or "", "type": "chat"}
+    rcon_chat_log.append(entry)
+    if len(rcon_chat_log) > MAX_CHAT_LOG:
+        rcon_chat_log.pop(0)
+    return jsonify({"success": True, "time": timestamp})
+
+
+@app.route("/api/rcon/chat", methods=["GET"])
+def get_chat_log():
+    return jsonify(rcon_chat_log)
+
+
+@app.route("/api/rcon/players", methods=["GET"])
+def get_players():
+    client = get_rcon()
+    if not client or not client.connected:
+        return jsonify({"error": "RCON não conectado", "players": [], "offline": True})
+    with rcon_lock:
+        response = client.send_command("players")
+    players = []
+    if response:
+        for line in response.split("\n"):
+            line = line.strip()
+            if not line or line.startswith("-") or line.startswith("Players") or line.startswith("#"):
+                if line.startswith("#"):
+                    # Parse: #0 IP:Port GUID Name
+                    parts = line.split(None, 4)
+                    if len(parts) >= 4:
+                        player = {
+                            "id": parts[0].replace("#", ""),
+                            "ip": parts[1] if len(parts) > 1 else "",
+                            "guid": parts[2] if len(parts) > 2 else "",
+                            "name": parts[3] if len(parts) > 3 else "",
+                        }
+                        if len(parts) > 4:
+                            player["name"] = parts[3] + " " + parts[4]
+                        players.append(player)
+                continue
+    return jsonify({"players": players, "count": len(players), "raw": response or ""})
+
+
+@app.route("/api/rcon/kick", methods=["POST"])
+def kick_player():
+    data = request.json
+    player_id = data.get("player_id", "")
+    reason = data.get("reason", "Kicked by admin")
+    if player_id == "":
+        return jsonify({"error": "Player ID é obrigatório"}), 400
+    client = get_rcon()
+    if not client or not client.connected:
+        return jsonify({"error": "RCON não conectado"}), 400
+    with rcon_lock:
+        response = client.send_command(f"kick {player_id} {reason}")
+    add_log(f"Player #{player_id} kicked: {reason}", "WARNING")
+    return jsonify({"success": True, "response": response or ""})
+
+
+@app.route("/api/rcon/ban", methods=["POST"])
+def ban_player_rcon():
+    data = request.json
+    player_id = data.get("player_id", "")
+    steam_id = data.get("steam_id", "")
+    player_name = data.get("player_name", "")
+    reason = data.get("reason", "Banned by admin")
+    duration = data.get("duration", 0)
+    if not player_id and not steam_id:
+        return jsonify({"error": "Player ID ou Steam ID é obrigatório"}), 400
+    # Send RCON ban if connected
+    client = get_rcon()
+    if client and client.connected and player_id:
+        with rcon_lock:
+            client.send_command(f"ban {player_id} {duration} {reason}")
+    # Save to local DB
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO bans (steam_id, player_name, reason, banned_at, duration, active) VALUES (?, ?, ?, ?, ?, 1)",
+        (steam_id or f"ID:{player_id}", player_name, reason, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), duration),
+    )
+    conn.commit()
+    conn.close()
+    add_log(f"Player '{player_name or player_id}' banido: {reason}", "WARNING")
+    return jsonify({"success": True})
+
+
+# ===== Ban Database Routes =====
+
+@app.route("/api/bans", methods=["GET"])
+def get_bans():
+    conn = get_db()
+    bans = conn.execute("SELECT * FROM bans ORDER BY banned_at DESC").fetchall()
+    conn.close()
+    return jsonify([dict(b) for b in bans])
+
+
+@app.route("/api/bans", methods=["POST"])
+def add_ban():
+    data = request.json
+    steam_id = data.get("steam_id", "").strip()
+    if not steam_id:
+        return jsonify({"error": "Steam ID é obrigatório"}), 400
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO bans (steam_id, player_name, reason, banned_at, banned_by, duration, active) VALUES (?, ?, ?, ?, ?, ?, 1)",
+        (
+            steam_id,
+            data.get("player_name", ""),
+            data.get("reason", ""),
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            data.get("banned_by", "Admin"),
+            data.get("duration", 0),
+        ),
+    )
+    conn.commit()
+    conn.close()
+    add_log(f"Ban adicionado: {steam_id}", "INFO")
+    return jsonify({"success": True})
+
+
+@app.route("/api/bans/<int:ban_id>", methods=["PUT"])
+def update_ban(ban_id):
+    data = request.json
+    conn = get_db()
+    fields = []
+    values = []
+    for key in ["steam_id", "player_name", "reason", "banned_by", "duration", "active"]:
+        if key in data:
+            fields.append(f"{key} = ?")
+            values.append(data[key])
+    if fields:
+        values.append(ban_id)
+        conn.execute(f"UPDATE bans SET {', '.join(fields)} WHERE id = ?", values)
+        conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/bans/<int:ban_id>", methods=["DELETE"])
+def delete_ban(ban_id):
+    conn = get_db()
+    conn.execute("DELETE FROM bans WHERE id = ?", (ban_id,))
+    conn.commit()
+    conn.close()
+    add_log(f"Ban #{ban_id} removido", "INFO")
+    return jsonify({"success": True})
+
+
+@app.route("/api/bans/<int:ban_id>/unban", methods=["POST"])
+def unban_player(ban_id):
+    conn = get_db()
+    ban = conn.execute("SELECT * FROM bans WHERE id = ?", (ban_id,)).fetchone()
+    if ban:
+        conn.execute("UPDATE bans SET active = 0 WHERE id = ?", (ban_id,))
+        conn.commit()
+        # Send RCON unban if connected
+        client = get_rcon()
+        if client and client.connected:
+            with rcon_lock:
+                client.send_command(f"removeBan {dict(ban)['steam_id']}")
+        add_log(f"Unban: {dict(ban)['steam_id']}", "INFO")
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/bans/check/<steam_id>", methods=["GET"])
+def check_ban(steam_id):
+    conn = get_db()
+    ban = conn.execute("SELECT * FROM bans WHERE steam_id = ? AND active = 1", (steam_id,)).fetchone()
+    conn.close()
+    if ban:
+        return jsonify({"banned": True, "ban": dict(ban)})
+    return jsonify({"banned": False})
+
+
+@app.route("/api/bans/export", methods=["GET"])
+def export_bans():
+    conn = get_db()
+    bans = conn.execute("SELECT * FROM bans WHERE active = 1 ORDER BY banned_at DESC").fetchall()
+    conn.close()
+    lines = []
+    for b in bans:
+        b = dict(b)
+        lines.append(f"{b['steam_id']} {b['duration']} {b['reason']}")
+    content = "\n".join(lines)
+    buffer = BytesIO(content.encode("utf-8"))
+    buffer.seek(0)
+    return send_file(buffer, mimetype="text/plain", as_attachment=True, download_name="bans.txt")
+
+
+# ===== Players History =====
+
+@app.route("/api/players/history", methods=["GET"])
+def get_players_history():
+    conn = get_db()
+    players = conn.execute("SELECT * FROM players_history ORDER BY last_seen DESC").fetchall()
+    conn.close()
+    result = []
+    for p in players:
+        p = dict(p)
+        # Check if player is banned
+        conn2 = get_db()
+        ban = conn2.execute("SELECT id FROM bans WHERE steam_id = ? AND active = 1", (p["steam_id"],)).fetchone()
+        conn2.close()
+        p["is_banned"] = ban is not None
+        result.append(p)
+    return jsonify(result)
+
+
+@app.route("/api/players/history", methods=["POST"])
+def add_player_history():
+    data = request.json
+    steam_id = data.get("steam_id", "").strip()
+    if not steam_id:
+        return jsonify({"error": "Steam ID obrigatório"}), 400
+    conn = get_db()
+    existing = conn.execute("SELECT * FROM players_history WHERE steam_id = ?", (steam_id,)).fetchone()
+    if existing:
+        conn.execute(
+            "UPDATE players_history SET player_name = ?, last_seen = ?, ip_address = ?, times_seen = times_seen + 1 WHERE steam_id = ?",
+            (data.get("player_name", dict(existing)["player_name"]), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data.get("ip_address", ""), steam_id),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO players_history (steam_id, player_name, last_seen, ip_address, times_seen) VALUES (?, ?, ?, ?, 1)",
+            (steam_id, data.get("player_name", ""), datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data.get("ip_address", "")),
+        )
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/players/history/<int:player_id>", methods=["DELETE"])
+def delete_player_history(player_id):
+    conn = get_db()
+    conn.execute("DELETE FROM players_history WHERE id = ?", (player_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
 
 
 if __name__ == "__main__":

@@ -1037,3 +1037,209 @@ body::before {
   padding: 12px;
   text-align: center;
 }
+
+/* ===== RCON ===== */
+.rcon-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.rcon-status.connected {
+  color: var(--green);
+  background: rgba(0, 255, 100, 0.08);
+  border: 1px solid rgba(0, 255, 100, 0.3);
+}
+
+.rcon-status.disconnected {
+  color: var(--red);
+  background: rgba(255, 50, 50, 0.08);
+  border: 1px solid rgba(255, 50, 50, 0.3);
+}
+
+.rcon-chat-log {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  min-height: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.rcon-chat-line {
+  padding: 2px 0;
+  word-break: break-all;
+}
+
+.rcon-chat-cmd { color: var(--pink-neon); }
+.rcon-chat-say { color: #00ff64; }
+.rcon-chat-resp { color: var(--text-secondary); }
+
+.rcon-chat-time {
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+
+.rcon-chat-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rcon-quick-cmds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ===== Bans ===== */
+.bans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ban-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  transition: all 0.2s;
+}
+
+.ban-item:hover { border-color: var(--border-hover); }
+.ban-item.inactive { opacity: 0.5; }
+
+.ban-info { flex: 1; min-width: 0; }
+
+.ban-player {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.ban-steam {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--pink-light);
+}
+
+.ban-reason {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.ban-meta {
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 140px;
+}
+
+.ban-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Orbitron', monospace;
+  margin-top: 4px;
+}
+
+.ban-active {
+  background: rgba(255, 50, 50, 0.15);
+  color: var(--red);
+  border: 1px solid rgba(255, 50, 50, 0.3);
+}
+
+.ban-expired {
+  background: rgba(100, 100, 100, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(100, 100, 100, 0.3);
+}
+
+.ban-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ban-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red);
+  background: rgba(255, 50, 50, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+/* ===== Players ===== */
+.players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: all 0.2s;
+}
+
+.player-item:hover { border-color: var(--border-hover); }
+.player-item.player-banned { border-left: 3px solid var(--red); }
+
+.player-id {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pink-neon);
+  min-width: 30px;
+}
+
+.player-info { flex: 1; min-width: 0; }
+
+.player-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.player-guid, .player-steam {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.player-meta {
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 120px;
+}
+
+.player-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

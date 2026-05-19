@@ -58,6 +58,9 @@ function initTabs() {
 
       if (tab.dataset.tab === 'logs') loadLogs();
       if (tab.dataset.tab === 'bec') loadBec();
+      if (tab.dataset.tab === 'rcon') loadRconConfig();
+      if (tab.dataset.tab === 'bans') loadBans();
+      if (tab.dataset.tab === 'players') { refreshPlayers(); loadPlayersHistory(); }
     });
   });
 }
@@ -547,6 +550,319 @@ async function previewXml() {
 function exportXml() {
   window.location.href = '/api/bec/export';
   showToast('Exportando scheduler.xml...', 'success');
+}
+
+// ===== RCON =====
+let rconConnected = false;
+
+async function loadRconConfig() {
+  try {
+    const data = await API.get('/api/rcon/config');
+    $('#rcon-host').value = data.host || '127.0.0.1';
+    $('#rcon-port').value = data.port || 2302;
+    $('#rcon-kickban').checked = data.kickban_enabled !== false;
+    rconConnected = data.connected || false;
+    updateRconStatus();
+    loadChatLog();
+  } catch (e) { console.error('Failed to load RCON config:', e); }
+}
+
+function updateRconStatus() {
+  const el = $('#rcon-status');
+  if (!el) return;
+  if (rconConnected) {
+    el.className = 'rcon-status connected';
+    el.innerHTML = '<span class="status-dot"></span> CONECTADO';
+  } else {
+    el.className = 'rcon-status disconnected';
+    el.innerHTML = '<span class="status-dot"></span> DESCONECTADO';
+  }
+}
+
+async function saveRconConfig() {
+  const data = {
+    host: $('#rcon-host')?.value || '127.0.0.1',
+    port: parseInt($('#rcon-port')?.value) || 2302,
+    password: $('#rcon-password')?.value || '',
+    kickban_enabled: $('#rcon-kickban')?.checked || false,
+  };
+  await API.put('/api/rcon/config', data);
+  showToast('Config RCON salva', 'success');
+}
+
+async function connectRcon() {
+  await saveRconConfig();
+  const res = await API.post('/api/rcon/connect');
+  rconConnected = res.connected || false;
+  updateRconStatus();
+  if (rconConnected) {
+    showToast('RCON conectado!', 'success');
+  } else {
+    showToast('Falha ao conectar RCON', 'error');
+  }
+}
+
+async function disconnectRcon() {
+  await API.post('/api/rcon/disconnect');
+  rconConnected = false;
+  updateRconStatus();
+  showToast('RCON desconectado', 'info');
+}
+
+async function sendRconCmd() {
+  const input = $('#rcon-cmd-input');
+  const cmd = input?.value?.trim();
+  if (!cmd) return;
+  try {
+    const res = await API.post('/api/rcon/command', { command: cmd });
+    if (res.offline) { showToast('RCON não conectado', 'error'); return; }
+    appendChat(res.time, `> ${cmd}`, 'cmd');
+    if (res.response) appendChat(res.time, res.response, 'response');
+    input.value = '';
+  } catch (e) { showToast('Erro ao enviar comando', 'error'); }
+}
+
+async function sendRconSay() {
+  const input = $('#rcon-cmd-input');
+  const msg = input?.value?.trim();
+  if (!msg) return;
+  try {
+    const res = await API.post('/api/rcon/say', { message: msg });
+    if (res.offline) { showToast('RCON não conectado', 'error'); return; }
+    appendChat(res.time, `[CHAT] ${msg}`, 'chat');
+    input.value = '';
+  } catch (e) { showToast('Erro ao enviar mensagem', 'error'); }
+}
+
+async function sendQuickCmd(cmd) {
+  try {
+    const res = await API.post('/api/rcon/command', { command: cmd });
+    if (res.offline) { showToast('RCON não conectado', 'error'); return; }
+    appendChat(res.time, `> ${cmd}`, 'cmd');
+    if (res.response) appendChat(res.time, res.response, 'response');
+    showToast(`Comando "${cmd}" enviado`, 'success');
+  } catch (e) { showToast('Erro ao enviar comando', 'error'); }
+}
+
+function appendChat(time, text, type) {
+  const log = $('#rcon-chat-log');
+  if (!log) return;
+  if (log.querySelector('.bec-empty')) log.innerHTML = '';
+  const cls = type === 'cmd' ? 'rcon-chat-cmd' : type === 'chat' ? 'rcon-chat-say' : 'rcon-chat-resp';
+  log.innerHTML += `<div class="rcon-chat-line ${cls}"><span class="rcon-chat-time">[${time}]</span> ${escHtml(text)}</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+async function loadChatLog() {
+  try {
+    const data = await API.get('/api/rcon/chat');
+    const log = $('#rcon-chat-log');
+    if (!log || !data.length) return;
+    log.innerHTML = '';
+    data.forEach(e => {
+      const type = e.type === 'chat' ? 'chat' : (e.cmd ? 'cmd' : 'response');
+      appendChat(e.time, e.cmd ? `> ${e.cmd}` : '', 'cmd');
+      if (e.response) appendChat(e.time, e.response, 'response');
+    });
+  } catch (e) { /* ignore */ }
+}
+
+// ===== Bans =====
+let allBans = [];
+
+async function loadBans() {
+  try {
+    allBans = await API.get('/api/bans');
+    renderBans();
+  } catch (e) { console.error('Failed to load bans:', e); }
+}
+
+function renderBans(filter) {
+  const container = $('#bans-list');
+  if (!container) return;
+  let bans = allBans;
+  if (filter) {
+    const f = filter.toLowerCase();
+    bans = bans.filter(b => (b.steam_id || '').toLowerCase().includes(f) || (b.player_name || '').toLowerCase().includes(f));
+  }
+  if (bans.length === 0) {
+    container.innerHTML = '<div class="bec-empty">Nenhum ban registrado</div>';
+    return;
+  }
+  container.innerHTML = bans.map(b => `
+    <div class="ban-item ${b.active ? 'active' : 'inactive'}">
+      <div class="ban-info">
+        <div class="ban-player">${escHtml(b.player_name || 'Desconhecido')}</div>
+        <div class="ban-steam">${escHtml(b.steam_id)}</div>
+        <div class="ban-reason">${escHtml(b.reason || 'Sem motivo')}</div>
+      </div>
+      <div class="ban-meta">
+        <div class="ban-date">${b.banned_at || ''}</div>
+        <div class="ban-duration">${b.duration === 0 ? 'PERMANENTE' : b.duration + ' min'}</div>
+        <div class="ban-status-badge ${b.active ? 'ban-active' : 'ban-expired'}">${b.active ? 'ATIVO' : 'INATIVO'}</div>
+      </div>
+      <div class="ban-actions">
+        ${b.active ? `<button class="btn btn-success btn-sm" onclick="unbanPlayer(${b.id})" title="Desbanir">Unban</button>` : ''}
+        <button class="btn-icon btn-sm" onclick="deleteBan(${b.id})" title="Remover">&#10005;</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterBans() {
+  const search = $('#ban-search')?.value || '';
+  renderBans(search);
+}
+
+function openBanModal() { $('#ban-modal').classList.add('active'); }
+function closeBanModal() { $('#ban-modal').classList.remove('active'); }
+
+async function saveBan() {
+  const steamId = $('#ban-steam-id')?.value?.trim();
+  if (!steamId) { showToast('Steam ID é obrigatório', 'error'); return; }
+  await API.post('/api/bans', {
+    steam_id: steamId,
+    player_name: $('#ban-player-name')?.value?.trim() || '',
+    reason: $('#ban-reason')?.value?.trim() || '',
+    duration: parseInt($('#ban-duration')?.value) || 0,
+  });
+  closeBanModal();
+  await loadBans();
+  showToast('Ban adicionado', 'success');
+}
+
+async function unbanPlayer(id) {
+  if (!confirm('Desbanir este player?')) return;
+  await API.post(`/api/bans/${id}/unban`);
+  await loadBans();
+  showToast('Player desbanido', 'success');
+}
+
+async function deleteBan(id) {
+  if (!confirm('Remover este ban do banco de dados?')) return;
+  await API.del(`/api/bans/${id}`);
+  await loadBans();
+  showToast('Ban removido', 'info');
+}
+
+function exportBans() {
+  window.location.href = '/api/bans/export';
+  showToast('Exportando bans.txt...', 'success');
+}
+
+// ===== Players =====
+let allPlayersHistory = [];
+
+async function refreshPlayers() {
+  const container = $('#players-online-list');
+  if (!container) return;
+  try {
+    const data = await API.get('/api/rcon/players');
+    if (data.offline) {
+      container.innerHTML = '<div class="bec-empty">Conecte ao RCON para ver os players online</div>';
+      return;
+    }
+    const players = data.players || [];
+    if (players.length === 0) {
+      container.innerHTML = '<div class="bec-empty">Nenhum player online (ou servidor vazio)</div>';
+      return;
+    }
+    container.innerHTML = players.map(p => `
+      <div class="player-item">
+        <div class="player-id">#${p.id}</div>
+        <div class="player-info">
+          <div class="player-name">${escHtml(p.name)}</div>
+          <div class="player-guid">${escHtml(p.guid || '')}</div>
+        </div>
+        <div class="player-actions">
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('kick ${p.id} Kicked by admin')">Kick</button>
+          <button class="btn btn-danger btn-sm" onclick="banFromList('${p.id}', '${escHtml(p.name)}', '${escHtml(p.guid)}')">Ban</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<div class="bec-empty">Erro ao buscar players</div>';
+  }
+}
+
+function banFromList(playerId, name, guid) {
+  $('#ban-steam-id').value = guid || '';
+  $('#ban-player-name').value = name || '';
+  $('#ban-reason').value = '';
+  $('#ban-duration').value = '0';
+  openBanModal();
+}
+
+async function loadPlayersHistory() {
+  try {
+    allPlayersHistory = await API.get('/api/players/history');
+    renderPlayersHistory();
+  } catch (e) { console.error('Failed to load players history:', e); }
+}
+
+function renderPlayersHistory(filter) {
+  const container = $('#players-history-list');
+  if (!container) return;
+  let players = allPlayersHistory;
+  if (filter) {
+    const f = filter.toLowerCase();
+    players = players.filter(p => (p.steam_id || '').toLowerCase().includes(f) || (p.player_name || '').toLowerCase().includes(f));
+  }
+  if (players.length === 0) {
+    container.innerHTML = '<div class="bec-empty">Nenhum player registrado</div>';
+    return;
+  }
+  container.innerHTML = players.map(p => `
+    <div class="player-item ${p.is_banned ? 'player-banned' : ''}">
+      <div class="player-info">
+        <div class="player-name">${escHtml(p.player_name || 'Desconhecido')} ${p.is_banned ? '<span class="ban-badge">BANIDO</span>' : ''}</div>
+        <div class="player-steam">${escHtml(p.steam_id)}</div>
+      </div>
+      <div class="player-meta">
+        <div>Visto: ${p.times_seen || 1}x</div>
+        <div>Último: ${p.last_seen || '-'}</div>
+      </div>
+      <div class="player-actions">
+        ${!p.is_banned ? `<button class="btn btn-danger btn-sm" onclick="banFromHistory('${escHtml(p.steam_id)}', '${escHtml(p.player_name)}')">Ban</button>` : ''}
+        <button class="btn-icon btn-sm" onclick="deletePlayerHistory(${p.id})" title="Remover">&#10005;</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterPlayers() {
+  const search = $('#player-search')?.value || '';
+  renderPlayersHistory(search);
+}
+
+function banFromHistory(steamId, name) {
+  $('#ban-steam-id').value = steamId;
+  $('#ban-player-name').value = name;
+  $('#ban-reason').value = '';
+  $('#ban-duration').value = '0';
+  openBanModal();
+}
+
+function openPlayerModal() { $('#player-modal').classList.add('active'); }
+function closePlayerModal() { $('#player-modal').classList.remove('active'); }
+
+async function savePlayer() {
+  const steamId = $('#player-steam-id')?.value?.trim();
+  if (!steamId) { showToast('Steam ID é obrigatório', 'error'); return; }
+  await API.post('/api/players/history', {
+    steam_id: steamId,
+    player_name: $('#player-name-input')?.value?.trim() || '',
+  });
+  closePlayerModal();
+  await loadPlayersHistory();
+  showToast('Player adicionado', 'success');
+}
+
+async function deletePlayerHistory(id) {
+  if (!confirm('Remover este player do histórico?')) return;
+  await API.del(`/api/players/history/${id}`);
+  await loadPlayersHistory();
+  showToast('Player removido', 'info');
 }
 
 // ===== Modal =====

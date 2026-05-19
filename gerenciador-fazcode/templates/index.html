@@ -58,6 +58,9 @@
     <div class="tabs">
       <button class="tab active" data-tab="processes">&#9881; Processos</button>
       <button class="tab" data-tab="bec">&#128338; BEC Scheduler</button>
+      <button class="tab" data-tab="rcon">&#128225; RCON</button>
+      <button class="tab" data-tab="bans">&#128683; Bans</button>
+      <button class="tab" data-tab="players">&#128101; Players</button>
       <button class="tab" data-tab="logs">&#9776; Logs</button>
       <button class="tab" data-tab="settings">&#9881; Configurações</button>
     </div>
@@ -191,6 +194,121 @@
             <button class="btn btn-primary" onclick="exportXml()">&#128190; Exportar scheduler.xml</button>
           </div>
           <pre id="bec-xml-preview" class="bec-xml-preview" style="display:none"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: RCON -->
+    <div id="rcon" class="tab-content">
+      <div class="settings-grid">
+        <!-- RCON Connection -->
+        <div class="settings-card">
+          <div class="settings-card-title">&#128225; Conexão RCON</div>
+          <div id="rcon-status" class="rcon-status disconnected">
+            <span class="status-dot"></span> DESCONECTADO
+          </div>
+          <div class="form-group">
+            <label class="form-label">IP do Servidor</label>
+            <input type="text" id="rcon-host" class="form-input" placeholder="127.0.0.1" value="127.0.0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Porta RCON</label>
+            <input type="number" id="rcon-port" class="form-input" placeholder="2302" value="2302">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Senha RCON</label>
+            <input type="password" id="rcon-password" class="form-input" placeholder="Senha do RCON">
+          </div>
+          <div class="form-group">
+            <div class="form-check">
+              <label class="toggle-switch">
+                <input type="checkbox" id="rcon-kickban" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <label class="form-label" style="margin-bottom:0">Auto-Kickban (banidos)</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-success btn-sm" onclick="connectRcon()">&#9654; Conectar</button>
+            <button class="btn btn-danger btn-sm" onclick="disconnectRcon()">&#9632; Desconectar</button>
+            <button class="btn btn-secondary btn-sm" onclick="saveRconConfig()">&#128190; Salvar Config</button>
+          </div>
+        </div>
+
+        <!-- RCON Chat -->
+        <div class="settings-card" style="flex:2">
+          <div class="settings-card-title">&#128172; Chat / Comandos</div>
+          <div id="rcon-chat-log" class="rcon-chat-log">
+            <div class="bec-empty">Conecte ao RCON para enviar comandos</div>
+          </div>
+          <div class="rcon-chat-input">
+            <input type="text" id="rcon-cmd-input" class="form-input" placeholder="Digite um comando RCON ou mensagem..." onkeypress="if(event.key==='Enter')sendRconCmd()">
+            <button class="btn btn-primary btn-sm" onclick="sendRconCmd()">Enviar</button>
+            <button class="btn btn-secondary btn-sm" onclick="sendRconSay()">&#128172; Say</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Commands -->
+      <div class="settings-card" style="margin-top:16px">
+        <div class="settings-card-title">&#9889; Comandos Rápidos</div>
+        <div class="rcon-quick-cmds">
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('players')">&#128101; Players</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('bans')">&#128683; Bans</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('#lock')">&#128274; Lock</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('#unlock')">&#128275; Unlock</button>
+          <button class="btn btn-danger btn-sm" onclick="if(confirm('Tem certeza?'))sendQuickCmd('#shutdown')">&#9888; Shutdown</button>
+          <button class="btn btn-danger btn-sm" onclick="if(confirm('Tem certeza?'))sendQuickCmd('#restart')">&#8635; Restart</button>
+          <button class="btn btn-secondary btn-sm" onclick="sendQuickCmd('kick -1 Servidor reiniciando!')">&#128683; Kick All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Bans -->
+    <div id="bans" class="tab-content">
+      <div class="settings-card">
+        <div class="settings-card-title">&#128683; Banco de Dados de Bans</div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <div class="search-box">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="ban-search" class="form-input" placeholder="Buscar por Steam ID ou nome..." oninput="filterBans()">
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="openBanModal()">+ Adicionar Ban</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportBans()">&#128190; Exportar bans.txt</button>
+          </div>
+        </div>
+        <div id="bans-list" class="bans-list">
+          <div class="bec-empty">Nenhum ban registrado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Players -->
+    <div id="players" class="tab-content">
+      <!-- Online Players -->
+      <div class="settings-card">
+        <div class="settings-card-title">&#128994; Players Online</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button class="btn btn-primary btn-sm" onclick="refreshPlayers()">&#8635; Atualizar Lista</button>
+        </div>
+        <div id="players-online-list" class="players-list">
+          <div class="bec-empty">Conecte ao RCON para ver os players online</div>
+        </div>
+      </div>
+
+      <!-- Player History -->
+      <div class="settings-card" style="margin-top:16px">
+        <div class="settings-card-title">&#128202; Histórico de Players</div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <div class="search-box">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="player-search" class="form-input" placeholder="Buscar por Steam ID ou nome..." oninput="filterPlayers()">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openPlayerModal()">+ Adicionar Player</button>
+        </div>
+        <div id="players-history-list" class="players-list">
+          <div class="bec-empty">Nenhum player registrado</div>
         </div>
       </div>
     </div>
@@ -344,6 +462,58 @@
       </div>
       <div id="sys-process-list" class="sys-process-list">
         <div class="log-empty">Carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Ban -->
+  <div id="ban-modal" class="modal-overlay" onclick="if(event.target===this)closeBanModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">ADICIONAR BAN</span>
+        <button class="modal-close" onclick="closeBanModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Steam ID *</label>
+        <input type="text" id="ban-steam-id" class="form-input" placeholder="76561198XXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome do Player</label>
+        <input type="text" id="ban-player-name" class="form-input" placeholder="Nome do jogador">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo</label>
+        <input type="text" id="ban-reason" class="form-input" placeholder="Motivo do ban">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duração (minutos, 0 = permanente)</label>
+        <input type="number" id="ban-duration" class="form-input" min="0" value="0">
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-secondary" onclick="closeBanModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="saveBan()">&#128683; Banir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Player -->
+  <div id="player-modal" class="modal-overlay" onclick="if(event.target===this)closePlayerModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">ADICIONAR PLAYER</span>
+        <button class="modal-close" onclick="closePlayerModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Steam ID *</label>
+        <input type="text" id="player-steam-id" class="form-input" placeholder="76561198XXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome do Player</label>
+        <input type="text" id="player-name-input" class="form-input" placeholder="Nome do jogador">
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-secondary" onclick="closePlayerModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="savePlayer()">&#128190; Salvar</button>
       </div>
     </div>
   </div>
