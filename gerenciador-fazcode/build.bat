@@ -20,22 +20,23 @@ if errorlevel 1 (
 )
 
 echo [1/4] Instalando dependencias...
-python -m pip install --upgrade pip
-python -m pip install flask psutil pyinstaller
+call python -m pip install --upgrade pip
+call python -m pip install flask psutil pyinstaller
 if errorlevel 1 (
     echo [ERRO] Falha ao instalar dependencias.
-    echo Tente rodar como Administrador (clique direito no .bat e "Executar como administrador")
+    echo Tente rodar como Administrador
     pause
     exit /b 1
 )
 
 echo.
 echo [2/4] Preparando arquivos...
-
-:: Cria o spec do PyInstaller com dados incluidos
 echo.
+
 echo [3/4] Gerando executavel com PyInstaller...
-python -m PyInstaller --noconfirm --onefile --windowed ^
+echo       Isso pode demorar alguns minutos...
+echo.
+call python -m PyInstaller --noconfirm --onefile --console ^
     --name "GerenciadorFazcode" ^
     --icon "static\img\icon.ico" ^
     --add-data "templates;templates" ^
@@ -48,7 +49,7 @@ python -m PyInstaller --noconfirm --onefile --windowed ^
 if errorlevel 1 (
     echo.
     echo [AVISO] Tentando sem icone .ico ...
-    python -m PyInstaller --noconfirm --onefile --windowed ^
+    call python -m PyInstaller --noconfirm --onefile --console ^
         --name "GerenciadorFazcode" ^
         --add-data "templates;templates" ^
         --add-data "static;static" ^
@@ -59,7 +60,10 @@ if errorlevel 1 (
 )
 
 if errorlevel 1 (
+    echo.
     echo [ERRO] Falha ao gerar o executavel.
+    echo Verifique se o PyInstaller suporta sua versao do Python.
+    echo Tente: python -m pip install --upgrade pyinstaller
     pause
     exit /b 1
 )
